@@ -1,12 +1,21 @@
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum RelayChain {
+    Polkadot,
+    Kusama,
+}
+
+#[derive(Clone, PartialEq, Eq)]
 pub struct Parachain {
     /// Name of the parachain.
     pub name: String,
     /// The rpc url endpoint from where we can query the weight consumption.
     //
-    // TODO: instead of having only one rpc ulr specified there should be a fallback.
+    // TODO: instead of having only one rpc url specified there should be a fallback.
     pub rpc_url: String,
-    /// The `ParaId` of the parachain. 
+    /// The `ParaId` of the parachain.
     pub para_id: u32,
+    /// The relay chain that the parachain is using for block validation.
+    pub relay_chain: RelayChain,
 }
 
 #[derive(Debug)]

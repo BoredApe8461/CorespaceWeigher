@@ -1,4 +1,6 @@
 use subxt::{OnlineClient, PolkadotConfig};
+use csv::WriterBuilder;
+use std::fs::OpenOptions;
 
 pub mod types;
 use types::*;
@@ -13,7 +15,7 @@ mod polkadot {}
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tasks: Vec<_> = parachains()
         .into_iter()
-        .map(|para| tokio::spawn(async move { log_weight_consumption(para).await }))
+        .map(|para| tokio::spawn(async move { track_weight_consumption(para).await }))
         .collect();
 
     for task in tasks {
@@ -23,17 +25,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn log_weight_consumption(para: Parachain) {
-    if let Ok(consumption) = weight_consumption(&para.rpc_url).await {
-        println!("{}: \n{}", para.name, consumption);
+async fn track_weight_consumption(para: Parachain) {
+    if let Ok(api) = OnlineClient::<PolkadotConfig>::from_url(&para.rpc_url).await {
+        let mut blocks_sub = api
+            .blocks()
+            .subscribe_finalized()
+            .await
+            .expect("Failed to subscribe to finalized blocks");
+
+        while let Some(Ok(block)) = blocks_sub.next().await {
+            if let Ok(consumption) = weight_consumption(api.clone()).await {
+                // println!("{} - {}: \n{}", block.header().number, para.name, consumption);
+                write_consumption(para.clone(), block.header().number, consumption);
+            }
+        }
     }
 }
 
-async fn weight_consumption(
-    rpc_url: &str,
-) -> Result<WeightConsumption, Box<dyn std::error::Error>> {
-    let api = OnlineClient::<PolkadotConfig>::from_url(rpc_url).await?;
+fn write_consumption(para: Parachain, block_number: u32, consumption: WeightConsumption) {
+    let file_path = format!("out/{:?}-{}.csv", para.relay_chain, para.para_id);
+    let file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .append(true)
+        .open(file_path)
+        .expect("Failed to open CSV file");
+    
+    let mut wtr = WriterBuilder::new().from_writer(file);
 
+    wtr.write_record(&[
+        block_number.to_string(),
+        consumption.normal.to_string(),
+        consumption.operational.to_string(),
+        consumption.mandatory.to_string(),
+    ])
+    .unwrap(); // TODO: don't unwrap
+
+    wtr.flush().unwrap();
+}
+
+async fn weight_consumption(
+    api: OnlineClient<PolkadotConfig>,
+) -> Result<WeightConsumption, Box<dyn std::error::Error>> {
     let weight_query = polkadot::storage().system().block_weight();
     let weight_consumed = api
         .storage()
