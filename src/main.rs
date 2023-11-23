@@ -1,55 +1,13 @@
 use subxt::{OnlineClient, PolkadotConfig};
 
+pub mod types;
+use types::*;
+
+mod parachains;
+use parachains::*;
+
 #[subxt::subxt(runtime_metadata_path = "artifacts/metadata.scale")]
-pub mod polkadot {}
-
-struct Parachain {
-    name: String,
-    rpc_url: String,
-    para_id: u32,
-}
-
-#[derive(Debug)]
-struct WeightConsumption {
-    /// The percentage of the weight used by user submitted extrinsics compared to the
-    /// maximum potential.
-    normal: f32,
-    /// The percentage of the weight used by user operational dispatches compared to the
-    /// maximum potential.
-    operational: f32,
-    /// The percentage of the weight used by the mandatory tasks of a parachain compared
-    /// to the maximum potential.
-    mandatory: f32,
-}
-
-impl std::fmt::Display for WeightConsumption {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\n\tNormal consumption: {}", self.normal)?;
-        write!(f, "\n\tOperational consumption: {}", self.operational)?;
-        write!(f, "\n\tMandatory consumption: {}", self.mandatory)?;
-        Ok(())
-    }
-}
-
-fn parachains() -> Vec<Parachain> {
-    vec![
-        Parachain {
-            name: "Acala".to_string(),
-            rpc_url: "wss://acala-polkadot.api.onfinality.io/public-ws".to_string(),
-            para_id: 2000,
-        },
-        Parachain {
-            name: "Moonbeam".to_string(),
-            rpc_url: "wss://moonbeam.public.blastapi.io".to_string(),
-            para_id: 2004,
-        },
-        Parachain {
-            name: "Astar".to_string(),
-            rpc_url: "wss://astar.api.onfinality.io/public-ws".to_string(),
-            para_id: 2006,
-        },
-    ]
-}
+mod polkadot {}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -88,6 +46,8 @@ async fn weight_consumption(
     let weight_limit_query = polkadot::constants().system().block_weights();
     let weight_limit = api.constants().at(&weight_limit_query)?;
 
+    // NOTE: This will be the same for all parachains within the same network until elastic scaling
+    // is enabled.
     let weight_limit = weight_limit.max_block.ref_time;
 
     let normal_consumed = weight_consumed.normal.ref_time;
