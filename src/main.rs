@@ -1,6 +1,9 @@
-use subxt::{OnlineClient, PolkadotConfig};
 use csv::WriterBuilder;
 use std::fs::OpenOptions;
+use subxt::{OnlineClient, PolkadotConfig};
+
+mod shared;
+use shared::*;
 
 pub mod types;
 use types::*;
@@ -34,27 +37,27 @@ async fn track_weight_consumption(para: Parachain) {
             .expect("Failed to subscribe to finalized blocks");
 
         while let Some(Ok(block)) = blocks_sub.next().await {
-            if let Ok(consumption) = weight_consumption(api.clone()).await {
-                // println!("{} - {}: \n{}", block.header().number, para.name, consumption);
-                write_consumption(para.clone(), block.header().number, consumption);
+            let block_number = block.header().number;
+            if let Ok(consumption) = weight_consumption(api.clone(), block_number).await {
+                write_consumption(para.clone(), consumption);
             }
         }
     }
 }
 
-fn write_consumption(para: Parachain, block_number: u32, consumption: WeightConsumption) {
-    let file_path = format!("out/{:?}-{}.csv", para.relay_chain, para.para_id);
+fn write_consumption(para: Parachain, consumption: WeightConsumption) {
+    let file_path = file_path(para);
     let file = OpenOptions::new()
         .write(true)
         .create(true)
         .append(true)
         .open(file_path)
         .expect("Failed to open CSV file");
-    
+
     let mut wtr = WriterBuilder::new().from_writer(file);
 
     wtr.write_record(&[
-        block_number.to_string(),
+        consumption.block_number.to_string(),
         consumption.normal.to_string(),
         consumption.operational.to_string(),
         consumption.mandatory.to_string(),
@@ -66,6 +69,7 @@ fn write_consumption(para: Parachain, block_number: u32, consumption: WeightCons
 
 async fn weight_consumption(
     api: OnlineClient<PolkadotConfig>,
+    block_number: u32,
 ) -> Result<WeightConsumption, Box<dyn std::error::Error>> {
     let weight_query = polkadot::storage().system().block_weight();
     let weight_consumed = api
@@ -88,6 +92,7 @@ async fn weight_consumption(
     let mandatory_consumed = weight_consumed.mandatory.ref_time;
 
     let consumption = WeightConsumption {
+        block_number,
         normal: normal_consumed as f32 / weight_limit as f32,
         operational: operational_consumed as f32 / weight_limit as f32,
         mandatory: mandatory_consumed as f32 / weight_limit as f32,
