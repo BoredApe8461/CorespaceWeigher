@@ -11,23 +11,21 @@ use types::*;
 
 #[macro_use]
 extern crate rocket;
+use rocket::http::Status;
 
 #[get("/consumption/<relay>/<para_id>")]
-fn consumption(relay: &str, para_id: ParaId) -> String {
-    if let Some(para) = parachains::parachain(relay.into(), para_id) {
-        // TODO: don't unwrap
-        let file = File::open(file_path(para)).unwrap();
-        let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
+fn consumption(relay: &str, para_id: ParaId) -> Result<String, Status> {
+    let para = parachains::parachain(relay.into(), para_id).ok_or(Status::NotFound)?;
 
-        let records: Vec<String> = rdr
-            .deserialize::<WeightConsumption>()
-            .map(|result| serde_json::to_string(&result.unwrap()).unwrap())
-            .collect();
+    let file = File::open(file_path(para)).map_err(|_| Status::NotFound)?;
+    let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
 
-        format!("{:?}", records)
-    } else {
-        format!("Para not found")
-    }
+    let weight_consumptions: Vec<WeightConsumption> = rdr
+        .deserialize::<WeightConsumption>()
+        .filter_map(|result| result.ok())
+        .collect();
+
+    serde_json::to_string(&weight_consumptions).map_err(|_| Status::InternalServerError)
 }
 
 #[launch]

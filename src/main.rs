@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
 
     for task in tasks {
-        task.await.unwrap();
+        task.await.expect("Failed to track consumption");
     }
 
     Ok(())
@@ -39,20 +39,22 @@ async fn track_weight_consumption(para: Parachain) {
         while let Some(Ok(block)) = blocks_sub.next().await {
             let block_number = block.header().number;
             if let Ok(consumption) = weight_consumption(api.clone(), block_number).await {
-                write_consumption(para.clone(), consumption);
+                let _ = write_consumption(para.clone(), consumption);
             }
         }
     }
 }
 
-fn write_consumption(para: Parachain, consumption: WeightConsumption) {
+fn write_consumption(
+    para: Parachain,
+    consumption: WeightConsumption,
+) -> Result<(), std::io::Error> {
     let file_path = file_path(para);
     let file = OpenOptions::new()
         .write(true)
         .create(true)
         .append(true)
-        .open(file_path)
-        .expect("Failed to open CSV file");
+        .open(file_path)?;
 
     let mut wtr = WriterBuilder::new().from_writer(file);
 
@@ -61,10 +63,9 @@ fn write_consumption(para: Parachain, consumption: WeightConsumption) {
         consumption.normal.to_string(),
         consumption.operational.to_string(),
         consumption.mandatory.to_string(),
-    ])
-    .unwrap(); // TODO: don't unwrap
+    ])?;
 
-    wtr.flush().unwrap();
+    wtr.flush()
 }
 
 async fn weight_consumption(
@@ -78,7 +79,7 @@ async fn weight_consumption(
         .await?
         .fetch(&weight_query)
         .await?
-        .ok_or("Failed")?;
+        .ok_or("Failed to query consumption")?;
 
     let weight_limit_query = polkadot::constants().system().block_weights();
     let weight_limit = api.constants().at(&weight_limit_query)?;
@@ -93,9 +94,9 @@ async fn weight_consumption(
 
     let consumption = WeightConsumption {
         block_number,
-        normal: normal_consumed as f32 / weight_limit as f32,
-        operational: operational_consumed as f32 / weight_limit as f32,
-        mandatory: mandatory_consumed as f32 / weight_limit as f32,
+        normal: round_to_2_decimals(normal_consumed as f32 / weight_limit as f32),
+        operational: round_to_2_decimals(operational_consumed as f32 / weight_limit as f32),
+        mandatory: round_to_2_decimals(mandatory_consumed as f32 / weight_limit as f32),
     };
 
     Ok(consumption)
