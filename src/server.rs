@@ -1,5 +1,6 @@
 use csv::ReaderBuilder;
 use std::fs::File;
+use rocket_cors::CorsOptions;
 
 mod parachains;
 
@@ -30,5 +31,7 @@ fn consumption(relay: &str, para_id: ParaId) -> Result<String, Status> {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![consumption])
+    rocket::build()
+        .attach(CorsOptions::default().to_cors().unwrap())
+        .mount("/", routes![consumption])
 }
