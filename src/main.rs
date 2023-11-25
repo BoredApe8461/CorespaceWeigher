@@ -94,9 +94,9 @@ async fn weight_consumption(
 
     let consumption = WeightConsumption {
         block_number,
-        normal: round_to(normal_consumed as f32 / weight_limit as f32),
-        operational: round_to(operational_consumed as f32 / weight_limit as f32),
-        mandatory: round_to(mandatory_consumed as f32 / weight_limit as f32),
+        normal: round_to(normal_consumed as f32 / weight_limit as f32, 3),
+        operational: round_to(operational_consumed as f32 / weight_limit as f32, 3),
+        mandatory: round_to(mandatory_consumed as f32 / weight_limit as f32, 3),
     };
 
     Ok(consumption)
