@@ -60,9 +60,14 @@ fn write_consumption(
 
     wtr.write_record(&[
         consumption.block_number.to_string(),
-        consumption.normal.to_string(),
-        consumption.operational.to_string(),
-        consumption.mandatory.to_string(),
+        // Reftime consumption:
+        consumption.ref_time.normal.to_string(),
+        consumption.ref_time.operational.to_string(),
+        consumption.ref_time.mandatory.to_string(),
+        // Proof size:
+        consumption.proof_size.normal.to_string(),
+        consumption.proof_size.operational.to_string(),
+        consumption.proof_size.mandatory.to_string(),
     ])?;
 
     wtr.flush()
@@ -84,19 +89,33 @@ async fn weight_consumption(
     let weight_limit_query = polkadot::constants().system().block_weights();
     let weight_limit = api.constants().at(&weight_limit_query)?;
 
+    let proof_limit = weight_limit.max_block.proof_size;
     // NOTE: This will be the same for all parachains within the same network until elastic scaling
     // is enabled.
-    let weight_limit = weight_limit.max_block.ref_time;
+    let ref_time_limit = weight_limit.max_block.ref_time;
 
-    let normal_consumed = weight_consumed.normal.ref_time;
-    let operational_consumed = weight_consumed.operational.ref_time;
-    let mandatory_consumed = weight_consumed.mandatory.ref_time;
+    let normal_ref_time = weight_consumed.normal.ref_time;
+    let operational_ref_time = weight_consumed.operational.ref_time;
+    let mandatory_ref_time = weight_consumed.mandatory.ref_time;
+
+    let normal_proof_size = weight_consumed.normal.proof_size;
+    let operational_proof_size = weight_consumed.operational.proof_size;
+    let mandatory_proof_size = weight_consumed.mandatory.proof_size;
 
     let consumption = WeightConsumption {
         block_number,
-        normal: round_to(normal_consumed as f32 / weight_limit as f32, 3),
-        operational: round_to(operational_consumed as f32 / weight_limit as f32, 3),
-        mandatory: round_to(mandatory_consumed as f32 / weight_limit as f32, 3),
+        ref_time: (
+            round_to(normal_ref_time as f32 / ref_time_limit as f32, 3),
+            round_to(operational_ref_time as f32 / ref_time_limit as f32, 3),
+            round_to(mandatory_ref_time as f32 / ref_time_limit as f32, 3),
+        )
+            .into(),
+        proof_size: (
+            round_to(normal_proof_size as f32 / proof_limit as f32, 3),
+            round_to(operational_proof_size as f32 / proof_limit as f32, 3),
+            round_to(mandatory_proof_size as f32 / proof_limit as f32, 3),
+        )
+            .into(),
     };
 
     Ok(consumption)

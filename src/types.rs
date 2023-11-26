@@ -46,6 +46,14 @@ pub struct Parachain {
 pub struct WeightConsumption {
     /// The block number for which the weight consumption is related to.
     pub block_number: u32,
+    /// The ref_time consumption over all the dispatch classes.
+    pub ref_time: DispatchClassConsumption,
+    /// The proof size over all dispatch classes.
+    pub proof_size: DispatchClassConsumption,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DispatchClassConsumption {
     /// The percentage of the weight used by user submitted extrinsics compared to the
     /// maximum potential.
     pub normal: f32,
@@ -57,11 +65,44 @@ pub struct WeightConsumption {
     pub mandatory: f32,
 }
 
+/// A shorthand for converting a tuple of `f32`s into `DispatchClassConsumption`.
+///
+/// The order in which the values need to be provided is: `normal`, `operational`, `mandatory`.
+impl From<(f32, f32, f32)> for DispatchClassConsumption {
+    fn from(value: (f32, f32, f32)) -> Self {
+        DispatchClassConsumption {
+            normal: value.0,
+            operational: value.1,
+            mandatory: value.2,
+        }
+    }
+}
+
 impl fmt::Display for WeightConsumption {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "\n\tNormal consumption: {}", self.normal)?;
-        write!(f, "\n\tOperational consumption: {}", self.operational)?;
-        write!(f, "\n\tMandatory consumption: {}", self.mandatory)?;
+        write!(
+            f,
+            "\n\tNormal ref_time consumption: {}",
+            self.ref_time.normal
+        )?;
+        write!(
+            f,
+            "\n\tOperational ref_time consumption: {}",
+            self.ref_time.operational
+        )?;
+        write!(
+            f,
+            "\n\tMandatory ref_time consumption: {}",
+            self.ref_time.mandatory
+        )?;
+
+        write!(f, "\n\tNormal proof size: {}", self.proof_size.normal)?;
+        write!(
+            f,
+            "\n\tOperational proof size: {}",
+            self.proof_size.operational
+        )?;
+        write!(f, "\n\tMandatory proof size: {}", self.proof_size.mandatory)?;
         Ok(())
     }
 }
