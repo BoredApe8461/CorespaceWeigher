@@ -3,7 +3,8 @@ use std::fmt;
 
 pub type ParaId = u32;
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(crate = "rocket::serde")]
 pub enum RelayChain {
     Polkadot,
     Kusama,
@@ -28,7 +29,8 @@ impl From<&str> for RelayChain {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(crate = "rocket::serde")]
 pub struct Parachain {
     /// Name of the parachain.
     pub name: String,
