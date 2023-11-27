@@ -36,9 +36,6 @@ use shared::*;
 pub mod types;
 use types::*;
 
-mod parachains;
-use parachains::*;
-
 #[subxt::subxt(runtime_metadata_path = "artifacts/metadata.scale")]
 mod polkadot {}
 

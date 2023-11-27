@@ -3,8 +3,6 @@ use rocket::{http::Status, response::Responder, serde::json::Json, Request, Resp
 use rocket_cors::CorsOptions;
 use std::{fs::{OpenOptions, File}, io::{Read, Write, Seek}};
 
-mod parachains;
-
 mod shared;
 use shared::*;
 
@@ -13,8 +11,6 @@ use types::*;
 
 #[macro_use]
 extern crate rocket;
-
-const PARACHAINS: &str = "parachains.json";
 
 #[derive(Debug)]
 enum Error {
@@ -45,7 +41,7 @@ impl<'r> Responder<'r, 'static> for Error {
 
 #[get("/consumption/<relay>/<para_id>")]
 fn consumption(relay: &str, para_id: ParaId) -> Result<String, Error> {
-    let para = parachains::parachain(relay.into(), para_id).ok_or(Error::NotRegistered)?;
+    let para = parachain(relay.into(), para_id).ok_or(Error::NotRegistered)?;
 
     let file = File::open(file_path(para)).map_err(|_| Error::ConsumptionDataNotFound)?;
     let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
@@ -72,7 +68,7 @@ fn register_para(para: Json<Parachain>) -> Result<String, Error> {
 
     let mut paras: Vec<Parachain> = serde_json::from_str(&content).map_err(|_| Error::InvalidData)?;
 
-    if parachains::parachain(para.relay_chain.clone(), para.para_id.clone()).is_some() {
+    if parachain(para.relay_chain.clone(), para.para_id.clone()).is_some() {
         return Err(Error::AlreadyRegistered);
     }
 
