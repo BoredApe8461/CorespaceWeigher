@@ -1,8 +1,20 @@
 [
-    {
-        "name": "Acala",
-        "rpc_url": "https://fdsafdas",
-        "para_id": 2000,  
-        "relay_chain": "Polkadot"
-    }
+  {
+    "name": "Acala",
+    "rpc_url": "https://fdsafdas",
+    "para_id": 2000,
+    "relay_chain": "Polkadot"
+  },
+  {
+    "name": "Acala",
+    "rpc_url": "https://fdsafdas",
+    "para_id": 3000,
+    "relay_chain": "Polkadot"
+  },
+  {
+    "name": "Acala",
+    "rpc_url": "https://fdsafdas",
+    "para_id": 3000,
+    "relay_chain": "Polkadot"
+  }
 ]
