@@ -1,3 +1,31 @@
+//! # Consumption Tracker
+//!
+//! This is the main source file for the Consumption Tracker binary.
+//!
+//! ## Overview
+//!
+//! The program is designed to fetch weight utilization data from a predefined set
+//! of parachains. The obtained weight information is then stored in the `out`
+//! directory as multiple CSV files.
+//!
+//! ## Output Structure
+//!
+//! Each parachain has its own dedicated output file, and these files are updated
+//! every time a new block is finalized and the weight consumption data is
+//! successfully queried.
+//!
+//! ## Data structure
+//!
+//! The data stored is the 2D weight consumption per each dispatch class.
+//! The data is stored in the CSV file within the following sequence:
+//!
+//! | block_number | normal_dispatch_ref_time | operational_dispatch_ref_time | mandatory_dispatch_ref_time | normal_proof_size | operational_proof_size | mandatory_proof_size |
+//! |--------------|---------------------------|-------------------------------|-----------------------------|-------------------|-------------------------|-----------------------|
+//! | ...          | ...                       | ...                           | ...                         | ...               | ...                     | ...                   |
+//!
+//! The percentages themselves are stored by representing them as decimal numbers;
+//! for example, 50.5% is stored as 0.505 with a precision of three decimals.
+
 use csv::WriterBuilder;
 use std::fs::OpenOptions;
 use subxt::{OnlineClient, PolkadotConfig};
@@ -16,6 +44,8 @@ mod polkadot {}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Asynchronously subscribes to follow the latest finalized block of each parachain
+    // and continuously fetches the weight consumption.
     let tasks: Vec<_> = parachains()
         .into_iter()
         .map(|para| tokio::spawn(async move { track_weight_consumption(para).await }))
@@ -36,6 +66,7 @@ async fn track_weight_consumption(para: Parachain) {
             .await
             .expect("Failed to subscribe to finalized blocks");
 
+        // Wait for new finalized blocks, then fetch and output the weight consumption accordingly.
         while let Some(Ok(block)) = blocks_sub.next().await {
             let block_number = block.header().number;
             if let Ok(consumption) = weight_consumption(api.clone(), block_number).await {
@@ -58,7 +89,9 @@ fn write_consumption(
 
     let mut wtr = WriterBuilder::new().from_writer(file);
 
+    // The data is stored in the sequence described at the beginning of the file.
     wtr.write_record(&[
+        // Block number:
         consumption.block_number.to_string(),
         // Reftime consumption:
         consumption.ref_time.normal.to_string(),
