@@ -1,3 +1,9 @@
+/// Web API for interacting with the Consumption Tracker service.
+///
+/// This API exposes two main endpoints:
+/// - `/consumption`: Used to query consumption data associated with a parachain.
+/// - `/register`: Used to register a parachain for consumption tracking.
+
 use csv::ReaderBuilder;
 use rocket::{http::Status, response::Responder, serde::json::Json, Request, Response};
 use rocket_cors::CorsOptions;
@@ -39,6 +45,9 @@ impl<'r> Responder<'r, 'static> for Error {
     }
 }
 
+/// Query the consumption data of a parachain.
+///
+/// This will return an error in case there is no data associated with the specific parachain.
 #[get("/consumption/<relay>/<para_id>")]
 fn consumption(relay: &str, para_id: ParaId) -> Result<String, Error> {
     let para = parachain(relay.into(), para_id).ok_or(Error::NotRegistered)?;
@@ -54,6 +63,7 @@ fn consumption(relay: &str, para_id: ParaId) -> Result<String, Error> {
     serde_json::to_string(&weight_consumptions).map_err(|_| Error::InvalidData)
 }
 
+/// Register a parachain for resource utilization tracking.
 #[post("/register_para", data = "<para>")]
 fn register_para(para: Json<Parachain>) -> Result<String, Error> {
     let mut file = OpenOptions::new()
@@ -77,7 +87,6 @@ fn register_para(para: Json<Parachain>) -> Result<String, Error> {
 
     file.set_len(0).expect("Failed to truncate file");
     file.seek(std::io::SeekFrom::Start(0)).expect("Failed to seek to the beginning");
-
 
     file.write_all(json_data.as_bytes()).unwrap();
 

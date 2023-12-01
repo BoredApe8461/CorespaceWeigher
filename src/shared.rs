@@ -14,7 +14,6 @@ pub fn parachains() -> Vec<Parachain> {
 
         Default::default()
     }
-
 }
 
 pub fn parachain(relay_chain: RelayChain, para_id: ParaId) -> Option<Parachain> {
