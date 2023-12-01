@@ -3,11 +3,13 @@
 /// This API exposes two main endpoints:
 /// - `/consumption`: Used to query consumption data associated with a parachain.
 /// - `/register`: Used to register a parachain for consumption tracking.
-
 use csv::ReaderBuilder;
 use rocket::{http::Status, response::Responder, serde::json::Json, Request, Response};
 use rocket_cors::CorsOptions;
-use std::{fs::{OpenOptions, File}, io::{Read, Write, Seek}};
+use std::{
+    fs::{File, OpenOptions},
+    io::{Read, Seek, Write},
+};
 
 mod shared;
 use shared::*;
@@ -74,9 +76,11 @@ fn register_para(para: Json<Parachain>) -> Result<String, Error> {
         .map_err(|_| Error::ParasDataNotFound)?;
 
     let mut content = String::new();
-    file.read_to_string(&mut content).map_err(|_| Error::InvalidData)?;
+    file.read_to_string(&mut content)
+        .map_err(|_| Error::InvalidData)?;
 
-    let mut paras: Vec<Parachain> = serde_json::from_str(&content).map_err(|_| Error::InvalidData)?;
+    let mut paras: Vec<Parachain> =
+        serde_json::from_str(&content).map_err(|_| Error::InvalidData)?;
 
     if parachain(para.relay_chain.clone(), para.para_id.clone()).is_some() {
         return Err(Error::AlreadyRegistered);
@@ -86,7 +90,8 @@ fn register_para(para: Json<Parachain>) -> Result<String, Error> {
     let json_data = serde_json::to_string_pretty(&paras).expect("Failed to serialize");
 
     file.set_len(0).expect("Failed to truncate file");
-    file.seek(std::io::SeekFrom::Start(0)).expect("Failed to seek to the beginning");
+    file.seek(std::io::SeekFrom::Start(0))
+        .expect("Failed to seek to the beginning");
 
     file.write_all(json_data.as_bytes()).unwrap();
 

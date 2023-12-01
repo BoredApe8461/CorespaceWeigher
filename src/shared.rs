@@ -1,17 +1,16 @@
-use std::{io::Read, fs::File};
 use crate::types::*;
+use std::{fs::File, io::Read};
 
 pub const PARACHAINS: &str = "parachains.json";
 
-pub fn parachains() -> Vec<Parachain> { 
+pub fn parachains() -> Vec<Parachain> {
     let mut file = File::open(PARACHAINS).expect("Hardcoded path is known good; qed");
 
     let mut content = String::new();
     if file.read_to_string(&mut content).is_ok() {
         let paras: Vec<Parachain> = serde_json::from_str(&content).unwrap_or_default();
         paras
-    }else {
-
+    } else {
         Default::default()
     }
 }
