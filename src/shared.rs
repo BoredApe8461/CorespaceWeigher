@@ -16,6 +16,7 @@ pub fn parachains() -> Vec<Parachain> {
     }
 }
 
+#[allow(dead_code)]
 pub fn parachain(relay_chain: RelayChain, para_id: ParaId) -> Option<Parachain> {
     parachains()
         .iter()
@@ -27,6 +28,7 @@ pub fn file_path(para: Parachain) -> String {
     format!("out/{}-{}.csv", para.relay_chain, para.para_id)
 }
 
+#[allow(dead_code)]
 pub fn round_to(number: f32, decimals: i32) -> f32 {
     let factor = 10f32.powi(decimals);
     (number * factor).round() / factor

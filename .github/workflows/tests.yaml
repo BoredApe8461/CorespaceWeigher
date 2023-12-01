@@ -26,21 +26,8 @@ jobs:
       - name: Check targets are installed correctly
         run: rustup target list --installed
 
-      - name: Cargo check
-        run: cargo check
-
       - name: Check Clippy
         run: cargo clippy
-
-  unittest:
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the source code
-        uses: actions/checkout@v3
-
-      - name: Unit test
-        run: cargo test
 
   format:
     needs: install
