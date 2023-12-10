@@ -50,16 +50,26 @@ impl<'r> Responder<'r, 'static> for Error {
 /// Query the consumption data of a parachain.
 ///
 /// This will return an error in case there is no data associated with the specific parachain.
-#[get("/consumption/<relay>/<para_id>")]
-fn consumption(relay: &str, para_id: ParaId) -> Result<String, Error> {
+#[get("/consumption/<relay>/<para_id>?<page>&<page_size>")]
+fn consumption(
+    relay: &str,
+    para_id: ParaId,
+    page: Option<u32>,
+    page_size: Option<u32>,
+) -> Result<String, Error> {
     let para = parachain(relay.into(), para_id).ok_or(Error::NotRegistered)?;
 
     let file = File::open(file_path(para)).map_err(|_| Error::ConsumptionDataNotFound)?;
     let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
 
+    let (page, page_size) = (page.unwrap_or_default(), page_size.unwrap_or(u32::MAX));
+
+
     let weight_consumptions: Vec<WeightConsumption> = rdr
         .deserialize::<WeightConsumption>()
         .filter_map(|result| result.ok())
+        .skip((page.saturating_add(page_size)) as usize)
+        .take(page_size as usize)
         .collect();
 
     serde_json::to_string(&weight_consumptions).map_err(|_| Error::InvalidData)
