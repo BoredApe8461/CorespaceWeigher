@@ -64,10 +64,11 @@ fn consumption(
 
     let (page, page_size) = (page.unwrap_or_default(), page_size.unwrap_or(u32::MAX));
 
+
     let weight_consumptions: Vec<WeightConsumption> = rdr
         .deserialize::<WeightConsumption>()
         .filter_map(|result| result.ok())
-        .skip((page * page_size) as usize) // FIXME: This can overflow
+        .skip((page.saturating_add(page_size)) as usize)
         .take(page_size as usize)
         .collect();
 
