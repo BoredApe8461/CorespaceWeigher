@@ -38,7 +38,7 @@ pub fn register_para(para: Json<Parachain>) -> Result<String, Error> {
 	let mut paras: Vec<Parachain> =
 		serde_json::from_str(&content).map_err(|_| Error::InvalidData)?;
 
-	if parachain(para.relay_chain.clone(), para.para_id.clone()).is_some() {
+	if parachain(para.relay_chain.clone(), para.para_id).is_some() {
 		return Err(Error::AlreadyRegistered);
 	}
 
@@ -50,5 +50,5 @@ pub fn register_para(para: Json<Parachain>) -> Result<String, Error> {
 
 	file.write_all(json_data.as_bytes()).unwrap();
 
-	Ok(format!(""))
+	Ok(Default::default())
 }
