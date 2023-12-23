@@ -27,16 +27,12 @@
 //! for example, 50.5% is stored as 0.505 with a precision of three decimals.
 
 use csv::WriterBuilder;
+use shared::{file_path, parachains, round_to};
 use std::fs::OpenOptions;
 use subxt::{OnlineClient, PolkadotConfig};
+use types::{Parachain, WeightConsumption};
 
-mod shared;
-use shared::*;
-
-pub mod types;
-use types::*;
-
-#[subxt::subxt(runtime_metadata_path = "artifacts/metadata.scale")]
+#[subxt::subxt(runtime_metadata_path = "../../artifacts/metadata.scale")]
 mod polkadot {}
 
 #[tokio::main]

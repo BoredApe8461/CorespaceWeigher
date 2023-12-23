@@ -1,5 +1,5 @@
-use crate::types::*;
 use std::{fs::File, io::Read};
+use types::{ParaId, Parachain, RelayChain};
 
 pub const PARACHAINS: &str = "parachains.json";
 
