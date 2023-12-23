@@ -17,9 +17,9 @@ successfully queried.
 The data stored is the 2D weight consumption per each dispatch class.
 The data is stored in the CSV file within the following sequence:
 
-| block_number | normal_dispatch_ref_time | operational_dispatch_ref_time | mandatory_dispatch_ref_time | normal_proof_size | operational_proof_size | mandatory_proof_size |
-|--------------|---------------------------|-------------------------------|-----------------------------|-------------------|-------------------------|-----------------------|
-| ...          | ...                       | ...                           | ...                         | ...               | ...                     | ...                   |
+| block_number | timestamp             | normal_dispatch_ref_time | operational_dispatch_ref_time | mandatory_dispatch_ref_time | normal_proof_size | operational_proof_size | mandatory_proof_size |
+|--------------|-----------------------|---------------------------|-------------------------------|-----------------------------|-------------------|-------------------------|-----------------------|
+| ...          | ...                   | ...                       | ...                           | ...                         | ...               | ...                     | ...                   |
 
 The percentages themselves are stored by representing them as decimal numbers; 
 for example, 50.5% is stored as 0.505 with a precision of three decimals.

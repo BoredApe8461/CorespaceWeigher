@@ -78,12 +78,12 @@ async fn track_weight_consumption(para: Parachain) {
 		while let Some(Ok(block)) = blocks_sub.next().await {
 			let block_number = block.header().number;
 
-			// TODO: handle error.
-			let timestamp = timestamp_at(api.clone(), block.hash()).await.unwrap();
+			// TODO: https://github.com/RegionX-Labs/CorespaceWeigher/issues/8
+			let timestamp = timestamp_at(api.clone(), block.hash()).await.unwrap_or_default();
 
 			if let Ok(consumption) = weight_consumption(api.clone(), block_number, timestamp).await
 			{
-				// TODO: write into logs in case of error
+				// TODO: https://github.com/RegionX-Labs/CorespaceWeigher/issues/8
 				let _ = write_consumption(para.clone(), consumption);
 			}
 		}

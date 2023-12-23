@@ -23,12 +23,12 @@ use types::{ParaId, Timestamp, WeightConsumption};
 /// Query the consumption data of a parachain.
 ///
 /// This will return an error in case there is no data associated with the specific parachain.
-#[get("/consumption/<relay>/<para_id>?<start>&<end>&<page>&<page_size>")]
+#[get("/consumption/<relay>/<para_id>?<_start>&<_end>&<page>&<page_size>")]
 pub fn consumption(
 	relay: &str,
 	para_id: ParaId,
-	start: Option<Timestamp>,
-	end: Option<Timestamp>,
+	_start: Option<Timestamp>,
+	_end: Option<Timestamp>,
 	page: Option<u32>,
 	page_size: Option<u32>,
 ) -> Result<String, Error> {
