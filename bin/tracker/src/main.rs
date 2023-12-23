@@ -44,8 +44,7 @@
 use csv::WriterBuilder;
 use shared::{file_path, parachains, round_to};
 use std::fs::OpenOptions;
-use subxt::{utils::H256, OnlineClient, PolkadotConfig};
-use subxt::blocks::Block;
+use subxt::{blocks::Block, utils::H256, OnlineClient, PolkadotConfig};
 use types::{Parachain, Timestamp, WeightConsumption};
 
 #[subxt::subxt(runtime_metadata_path = "../../artifacts/metadata.scale")]
@@ -71,7 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn track_weight_consumption(para: Parachain) {
 	if let Ok(api) = OnlineClient::<PolkadotConfig>::from_url(&para.rpc_url).await {
-		if let Err(err) = track_blocks(api, para).await {			
+		if let Err(err) = track_blocks(api, para).await {
 			log::error!(
 				target: "tracker",
 				"Failed to track new block: {:?}",
@@ -81,7 +80,10 @@ async fn track_weight_consumption(para: Parachain) {
 	}
 }
 
-async fn track_blocks(api: OnlineClient<PolkadotConfig>, para: Parachain) -> Result<(), Box<dyn std::error::Error>> {
+async fn track_blocks(
+	api: OnlineClient<PolkadotConfig>,
+	para: Parachain,
+) -> Result<(), Box<dyn std::error::Error>> {
 	let mut blocks_sub = api
 		.blocks()
 		.subscribe_finalized()
