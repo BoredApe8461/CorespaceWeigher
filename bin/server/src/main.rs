@@ -11,7 +11,7 @@ extern crate rocket;
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build()
-        .attach(CorsOptions::default().to_cors().unwrap())
-        .mount("/", routes![register_para])
+	rocket::build()
+		.attach(CorsOptions::default().to_cors().unwrap())
+		.mount("/", routes![register_para])
 }
