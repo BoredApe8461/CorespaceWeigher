@@ -31,11 +31,11 @@ To compile the Corespace Weigher project run the following command from the root
 cargo build --release
 ```
 
-This will output binaries: `consumption-tracker` and `api`
+This will output binaries: `tracker` and `server`
 
-The `consumption-tracker` binary is responsible for tracking the actual consumption data of parachains. This program will read the parachains.json file to obtain the list of parachains for which it will track consumption data by listening to the latest blocks from the specified RPC nodes.
+The `tracker` binary is responsible for tracking the actual consumption data of parachains. This program will read the parachains.json file to obtain the list of parachains for which it will track consumption data by listening to the latest blocks from the specified RPC nodes.
 
-The `api` binary provides a web interface that can be used for registering a parachain for consumption tracking, as well as for querying all the consumption data.
+The `server` binary provides a web interface that can be used for registering a parachain for consumption tracking, as well as for querying all the consumption data.
 
 ## Web API
 
