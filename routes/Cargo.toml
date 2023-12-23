@@ -1,0 +1,15 @@
+[package]
+name = "routes"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+csv = "1.3.0"
+rocket = { version = "0.5.0", features=["json"] }
+rocket_cors = "0.6.0"
+serde_json = "1.0.108"
+
+types = { path = "../types" }
+shared = { path = "../shared" }
