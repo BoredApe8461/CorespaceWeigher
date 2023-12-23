@@ -34,9 +34,9 @@
 //! The data stored is the 2D weight consumption per each dispatch class.
 //! The data is stored in the CSV file within the following sequence:
 //!
-//! | block_number | normal_dispatch_ref_time | operational_dispatch_ref_time | mandatory_dispatch_ref_time | normal_proof_size | operational_proof_size | mandatory_proof_size |
-//! |--------------|---------------------------|-------------------------------|-----------------------------|-------------------|-------------------------|-----------------------|
-//! | ...          | ...                       | ...                           | ...                         | ...               | ...                     | ...                   |
+//! | block_number | timestamp             | normal_dispatch_ref_time | operational_dispatch_ref_time | mandatory_dispatch_ref_time | normal_proof_size | operational_proof_size | mandatory_proof_size |
+//! |--------------|-----------------------|---------------------------|-------------------------------|-----------------------------|-------------------|-------------------------|-----------------------|
+//! | ...          | ...                   | ...                       | ...                           | ...                         | ...               | ...                     | ...                   |
 //!
 //! The percentages themselves are stored by representing them as decimal numbers;
 //! for example, 50.5% is stored as 0.505 with a precision of three decimals.
@@ -44,8 +44,8 @@
 use csv::WriterBuilder;
 use shared::{file_path, parachains, round_to};
 use std::fs::OpenOptions;
-use subxt::{OnlineClient, PolkadotConfig};
-use types::{Parachain, WeightConsumption};
+use subxt::{utils::H256, OnlineClient, PolkadotConfig};
+use types::{Parachain, Timestamp, WeightConsumption};
 
 #[subxt::subxt(runtime_metadata_path = "../../artifacts/metadata.scale")]
 mod polkadot {}
@@ -77,7 +77,13 @@ async fn track_weight_consumption(para: Parachain) {
 		// Wait for new finalized blocks, then fetch and output the weight consumption accordingly.
 		while let Some(Ok(block)) = blocks_sub.next().await {
 			let block_number = block.header().number;
-			if let Ok(consumption) = weight_consumption(api.clone(), block_number).await {
+
+			// TODO: https://github.com/RegionX-Labs/CorespaceWeigher/issues/8
+			let timestamp = timestamp_at(api.clone(), block.hash()).await.unwrap_or_default();
+
+			if let Ok(consumption) = weight_consumption(api.clone(), block_number, timestamp).await
+			{
+				// TODO: https://github.com/RegionX-Labs/CorespaceWeigher/issues/8
 				let _ = write_consumption(para.clone(), consumption);
 			}
 		}
@@ -97,6 +103,8 @@ fn write_consumption(
 	wtr.write_record(&[
 		// Block number:
 		consumption.block_number.to_string(),
+		// Timestamp:
+		consumption.timestamp.to_string(),
 		// Reftime consumption:
 		consumption.ref_time.normal.to_string(),
 		consumption.ref_time.operational.to_string(),
@@ -113,6 +121,7 @@ fn write_consumption(
 async fn weight_consumption(
 	api: OnlineClient<PolkadotConfig>,
 	block_number: u32,
+	timestamp: Timestamp,
 ) -> Result<WeightConsumption, Box<dyn std::error::Error>> {
 	let weight_query = polkadot::storage().system().block_weight();
 	let weight_consumed = api
@@ -141,6 +150,7 @@ async fn weight_consumption(
 
 	let consumption = WeightConsumption {
 		block_number,
+		timestamp,
 		ref_time: (
 			round_to(normal_ref_time as f32 / ref_time_limit as f32, 3),
 			round_to(operational_ref_time as f32 / ref_time_limit as f32, 3),
@@ -156,4 +166,20 @@ async fn weight_consumption(
 	};
 
 	Ok(consumption)
+}
+
+async fn timestamp_at(
+	api: OnlineClient<PolkadotConfig>,
+	block_hash: H256,
+) -> Result<Timestamp, Box<dyn std::error::Error>> {
+	let timestamp_query = polkadot::storage().timestamp().now();
+
+	let timestamp = api
+		.storage()
+		.at(block_hash)
+		.fetch(&timestamp_query)
+		.await?
+		.ok_or("Failed to query consumption")?;
+
+	Ok(timestamp)
 }

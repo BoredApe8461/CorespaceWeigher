@@ -16,6 +16,11 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+/// Timestamp based on the 1 Jan 1970 UNIX base, which is persistent across node restarts and OS
+/// reboots.
+pub type Timestamp = u64;
+
+/// Type used for identifying parachains.
 pub type ParaId = u32;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -63,6 +68,8 @@ pub struct Parachain {
 pub struct WeightConsumption {
 	/// The block number for which the weight consumption is related to.
 	pub block_number: u32,
+	/// The timestamp of the block.
+	pub timestamp: Timestamp,
 	/// The ref_time consumption over all the dispatch classes.
 	pub ref_time: DispatchClassConsumption,
 	/// The proof size over all dispatch classes.
