@@ -4,17 +4,5 @@
     "rpc_url": "wss://acala-rpc.dwellir.com",
     "para_id": 2000,
     "relay_chain": "Polkadot"
-  },
-  {
-    "name": "Coretime",
-    "rpc_url": "wss://rococo-rpc.polkadot.io/",
-    "para_id": 1005,
-    "relay_chain": "Polkadot"
-  },
-  {
-    "name": "Acala",
-    "rpc_url": "https://fdsafdas",
-    "para_id": 2005,
-    "relay_chain": "Polkadot"
   }
 ]
