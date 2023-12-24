@@ -15,6 +15,8 @@
 
 use rocket::{http::Status, response::Responder, Request, Response};
 
+const LOG_TARGET: &str = "server";
+
 /// Web API for interacting with the Consumption Tracker service.
 ///
 /// This API exposes two main endpoints:
