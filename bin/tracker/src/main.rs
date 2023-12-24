@@ -119,14 +119,14 @@ fn write_consumption(
 	para: Parachain,
 	consumption: WeightConsumption,
 ) -> Result<(), std::io::Error> {
-	let output_file_path = output_file_path(para);
-	let file = OpenOptions::new().create(true).append(true).open(output_file_path)?;
-  
 	log::info!(
 		target: LOG_TARGET,
 		"Writing weight consumption for Para {}-{} for block: #{}",
 		para.relay_chain, para.para_id, consumption.block_number
 	);
+
+	let output_file_path = output_file_path(para);
+	let file = OpenOptions::new().create(true).append(true).open(output_file_path)?;
 
 	let mut wtr = WriterBuilder::new().from_writer(file);
 
