@@ -17,14 +17,14 @@ use crate::*;
 use rocket::{post, serde::json::Json};
 use shared::{parachain, PARACHAINS};
 use std::{
-	fs::OpenOptions,
+	fs::{File, OpenOptions},
 	io::{Read, Seek, Write},
 };
 use types::Parachain;
 
 /// Register a parachain for resource utilization tracking.
 #[post("/register_para", data = "<para>")]
-pub fn register_para(para: Json<Parachain>) -> Result<String, Error> {
+pub fn register_para(para: Json<Parachain>) -> Result<(), Error> {
 	let mut file = OpenOptions::new()
 		.read(true)
 		.write(true)
@@ -43,12 +43,26 @@ pub fn register_para(para: Json<Parachain>) -> Result<String, Error> {
 	}
 
 	paras.push(para.into_inner());
-	let json_data = serde_json::to_string_pretty(&paras).expect("Failed to serialize");
 
-	file.set_len(0).expect("Failed to truncate file");
-	file.seek(std::io::SeekFrom::Start(0)).expect("Failed to seek to the beginning");
+	if let Err(err) = update_paras_file(&mut file, paras) {
+		log::error!(
+			target: LOG_TARGET,
+			"Failed to register para: {:?}",
+			err
+		);
+	}
 
-	file.write_all(json_data.as_bytes()).unwrap();
+	Ok(())
+}
 
-	Ok(Default::default())
+fn update_paras_file(file: &mut File, paras: Vec<Parachain>) -> Result<(), String> {
+	let json_data = serde_json::to_string_pretty(&paras).map_err(|_| "Failed to serialize")?;
+
+	file.set_len(0).map_err(|_| "Failed to truncate file")?;
+	file.seek(std::io::SeekFrom::Start(0))
+		.map_err(|_| "Failed to seek to the beginning")?;
+
+	file.write_all(json_data.as_bytes()).map_err(|_| "Failed to write into file")?;
+
+	Ok(())
 }

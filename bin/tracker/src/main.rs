@@ -41,10 +41,12 @@
 //! The percentages themselves are stored by representing them as decimal numbers;
 //! for example, 50.5% is stored as 0.505 with a precision of three decimals.
 
+const LOG_TARGET: &str = "tracker";
+
 use csv::WriterBuilder;
 use shared::{file_path, parachains, round_to};
 use std::fs::OpenOptions;
-use subxt::{utils::H256, OnlineClient, PolkadotConfig};
+use subxt::{blocks::Block, utils::H256, OnlineClient, PolkadotConfig};
 use types::{Parachain, Timestamp, WeightConsumption};
 
 #[subxt::subxt(runtime_metadata_path = "../../artifacts/metadata.scale")]
@@ -52,6 +54,8 @@ mod polkadot {}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	env_logger::init();
+
 	// Asynchronously subscribes to follow the latest finalized block of each parachain
 	// and continuously fetches the weight consumption.
 	let tasks: Vec<_> = parachains()
@@ -68,32 +72,59 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn track_weight_consumption(para: Parachain) {
 	if let Ok(api) = OnlineClient::<PolkadotConfig>::from_url(&para.rpc_url).await {
-		let mut blocks_sub = api
-			.blocks()
-			.subscribe_finalized()
-			.await
-			.expect("Failed to subscribe to finalized blocks");
-
-		// Wait for new finalized blocks, then fetch and output the weight consumption accordingly.
-		while let Some(Ok(block)) = blocks_sub.next().await {
-			let block_number = block.header().number;
-
-			// TODO: https://github.com/RegionX-Labs/CorespaceWeigher/issues/8
-			let timestamp = timestamp_at(api.clone(), block.hash()).await.unwrap_or_default();
-
-			if let Ok(consumption) = weight_consumption(api.clone(), block_number, timestamp).await
-			{
-				// TODO: https://github.com/RegionX-Labs/CorespaceWeigher/issues/8
-				let _ = write_consumption(para.clone(), consumption);
-			}
+		if let Err(err) = track_blocks(api, para).await {
+			log::error!(
+				target: LOG_TARGET,
+				"Failed to track new block: {:?}",
+				err
+			);
 		}
 	}
+}
+
+async fn track_blocks(
+	api: OnlineClient<PolkadotConfig>,
+	para: Parachain,
+) -> Result<(), Box<dyn std::error::Error>> {
+	let mut blocks_sub = api
+		.blocks()
+		.subscribe_finalized()
+		.await
+		.map_err(|_| "Failed to subscribe to finalized blocks")?;
+
+	// Wait for new finalized blocks, then fetch and output the weight consumption accordingly.
+	while let Some(Ok(block)) = blocks_sub.next().await {
+		note_new_block(api.clone(), para.clone(), block).await?;
+	}
+
+	Ok(())
+}
+
+async fn note_new_block(
+	api: OnlineClient<PolkadotConfig>,
+	para: Parachain,
+	block: Block<PolkadotConfig, OnlineClient<PolkadotConfig>>,
+) -> Result<(), Box<dyn std::error::Error>> {
+	let block_number = block.header().number;
+
+	let timestamp = timestamp_at(api.clone(), block.hash()).await?;
+	let consumption = weight_consumption(api, block_number, timestamp).await?;
+
+	write_consumption(para, consumption)?;
+
+	Ok(())
 }
 
 fn write_consumption(
 	para: Parachain,
 	consumption: WeightConsumption,
 ) -> Result<(), std::io::Error> {
+	log::info!(
+		target: LOG_TARGET,
+		"Writing weight consumption for Para {}-{} for block: #{}",
+		para.relay_chain, para.para_id, consumption.block_number
+	);
+
 	let file_path = file_path(para);
 	let file = OpenOptions::new().write(true).create(true).append(true).open(file_path)?;
 
