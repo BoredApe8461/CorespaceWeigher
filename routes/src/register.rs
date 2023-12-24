@@ -27,7 +27,6 @@ use types::Parachain;
 pub fn register_para(para: Json<Parachain>) -> Result<String, Error> {
 	let mut file = OpenOptions::new()
 		.read(true)
-		.write(true)
 		.create(true)
 		.open(PARACHAINS)
 		.map_err(|_| Error::ParasDataNotFound)?;
