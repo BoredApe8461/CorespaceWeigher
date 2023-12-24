@@ -16,10 +16,16 @@
 use std::{fs::File, io::Read};
 use types::{ParaId, Parachain, RelayChain};
 
-pub const PARACHAINS: &str = "parachains.json";
+pub const CONFIG_FILE: &str = "config.toml";
+
+#[derive(serde::Deserialize)]
+struct Config {
+	output_directory: String,
+	parachains_file: String,
+}
 
 pub fn parachains() -> Vec<Parachain> {
-	let mut file = File::open(PARACHAINS).expect("Hardcoded path is known good; qed");
+	let mut file = File::open(parachains_file_path()).expect("Hardcoded path is known good; qed");
 
 	let mut content = String::new();
 	if file.read_to_string(&mut content).is_ok() {
@@ -38,8 +44,20 @@ pub fn parachain(relay_chain: RelayChain, para_id: ParaId) -> Option<Parachain> 
 		.cloned()
 }
 
-pub fn file_path(para: Parachain) -> String {
-	format!("out/{}-{}.csv", para.relay_chain, para.para_id)
+pub fn parachains_file_path() -> String {
+	let config_str = std::fs::read_to_string("config.toml").expect("Failed to read config file");
+
+	let config: Config = toml::from_str(&config_str).expect("Failed to parse config file");
+
+	config.parachains_file
+}
+
+pub fn output_file_path(para: Parachain) -> String {
+	let config_str = std::fs::read_to_string("config.toml").expect("Failed to read config file");
+
+	let config: Config = toml::from_str(&config_str).expect("Failed to parse config file");
+
+	format!("{}/{}-{}.csv", config.output_directory, para.relay_chain, para.para_id)
 }
 
 #[allow(dead_code)]

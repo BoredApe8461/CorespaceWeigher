@@ -13,3 +13,15 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
+#[cfg(test)]
+use rocket::local::blocking::Client;
+use rocket::{http::Status, routes};
+use routes::consumption::consumption;
+
+#[test]
+fn getting_all_consumption_data_works() {
+	let rocket = rocket::build().mount("/", routes![consumption]);
+	let client = Client::tracked(rocket).expect("valid rocket instance");
+	let response = client.get("/consumption/polkadot/2000").dispatch();
+	assert_eq!(response.status(), Status::Ok);
+}

@@ -42,7 +42,7 @@
 //! for example, 50.5% is stored as 0.505 with a precision of three decimals.
 
 use csv::WriterBuilder;
-use shared::{file_path, parachains, round_to};
+use shared::{output_file_path, parachains, round_to};
 use std::fs::OpenOptions;
 use subxt::{utils::H256, OnlineClient, PolkadotConfig};
 use types::{Parachain, Timestamp, WeightConsumption};
@@ -94,8 +94,8 @@ fn write_consumption(
 	para: Parachain,
 	consumption: WeightConsumption,
 ) -> Result<(), std::io::Error> {
-	let file_path = file_path(para);
-	let file = OpenOptions::new().write(true).create(true).append(true).open(file_path)?;
+	let output_file_path = output_file_path(para);
+	let file = OpenOptions::new().create(true).append(true).open(output_file_path)?;
 
 	let mut wtr = WriterBuilder::new().from_writer(file);
 

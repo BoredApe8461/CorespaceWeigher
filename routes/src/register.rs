@@ -15,7 +15,7 @@
 
 use crate::*;
 use rocket::{post, serde::json::Json};
-use shared::{parachain, PARACHAINS};
+use shared::{parachain, parachains_file_path};
 use std::{
 	fs::OpenOptions,
 	io::{Read, Seek, Write},
@@ -28,7 +28,7 @@ pub fn register_para(para: Json<Parachain>) -> Result<String, Error> {
 	let mut file = OpenOptions::new()
 		.read(true)
 		.create(true)
-		.open(PARACHAINS)
+		.open(parachains_file_path())
 		.map_err(|_| Error::ParasDataNotFound)?;
 
 	let mut content = String::new();

@@ -16,7 +16,7 @@
 use crate::Error;
 use csv::ReaderBuilder;
 use rocket::get;
-use shared::{file_path, parachain};
+use shared::{output_file_path, parachain};
 use std::fs::File;
 use types::{ParaId, Timestamp, WeightConsumption};
 
@@ -34,7 +34,7 @@ pub fn consumption(
 ) -> Result<String, Error> {
 	let para = parachain(relay.into(), para_id).ok_or(Error::NotRegistered)?;
 
-	let file = File::open(file_path(para)).map_err(|_| Error::ConsumptionDataNotFound)?;
+	let file = File::open(output_file_path(para)).map_err(|_| Error::ConsumptionDataNotFound)?;
 	let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
 
 	let (page, page_size) = (page.unwrap_or_default(), page_size.unwrap_or(u32::MAX));
