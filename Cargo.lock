@@ -2498,6 +2498,7 @@ name = "routes"
 version = "0.1.0"
 dependencies = [
  "csv",
+ "log",
  "rocket",
  "rocket_cors",
  "serde_json",

@@ -41,6 +41,8 @@
 //! The percentages themselves are stored by representing them as decimal numbers;
 //! for example, 50.5% is stored as 0.505 with a precision of three decimals.
 
+const LOG_TARGET: &str = "tracker";
+
 use csv::WriterBuilder;
 use shared::{file_path, parachains, round_to};
 use std::fs::OpenOptions;
@@ -72,7 +74,7 @@ async fn track_weight_consumption(para: Parachain) {
 	if let Ok(api) = OnlineClient::<PolkadotConfig>::from_url(&para.rpc_url).await {
 		if let Err(err) = track_blocks(api, para).await {
 			log::error!(
-				target: "tracker",
+				target: LOG_TARGET,
 				"Failed to track new block: {:?}",
 				err
 			);
@@ -118,7 +120,7 @@ fn write_consumption(
 	consumption: WeightConsumption,
 ) -> Result<(), std::io::Error> {
 	log::info!(
-		target: "tracker",
+		target: LOG_TARGET,
 		"Writing weight consumption for Para {}-{} for block: #{}",
 		para.relay_chain, para.para_id, consumption.block_number
 	);
