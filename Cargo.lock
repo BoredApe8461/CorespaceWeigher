@@ -1769,6 +1769,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "718e8fae447df0c7e1ba7f5189829e63fd536945c8988d61444c19039f16b670"
 
 [[package]]
+name = "maplit"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
+
+[[package]]
 name = "matchers"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2499,6 +2505,7 @@ version = "0.1.0"
 dependencies = [
  "csv",
  "log",
+ "maplit",
  "rocket",
  "rocket_cors",
  "serde_json",
@@ -2924,6 +2931,8 @@ dependencies = [
 name = "shared"
 version = "0.1.0"
 dependencies = [
+ "csv",
+ "log",
  "serde",
  "serde_json",
  "toml 0.5.11",
@@ -3639,7 +3648,6 @@ dependencies = [
 name = "tracker"
 version = "0.1.0"
 dependencies = [
- "csv",
  "env_logger",
  "log",
  "shared",

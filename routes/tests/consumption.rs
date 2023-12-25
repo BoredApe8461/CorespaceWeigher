@@ -18,10 +18,15 @@ use rocket::local::blocking::Client;
 use rocket::{http::Status, routes};
 use routes::consumption::consumption;
 
+mod mock;
+use mock::MockEnvironment;
+
 #[test]
 fn getting_all_consumption_data_works() {
-	let rocket = rocket::build().mount("/", routes![consumption]);
-	let client = Client::tracked(rocket).expect("valid rocket instance");
-	let response = client.get("/consumption/polkadot/2000").dispatch();
-	assert_eq!(response.status(), Status::Ok);
+	MockEnvironment::new().execute_with(|| {
+		let rocket = rocket::build().mount("/", routes![consumption]);
+		let client = Client::tracked(rocket).expect("valid rocket instance");
+		let response = client.get("/consumption/polkadot/2000").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+	});
 }
