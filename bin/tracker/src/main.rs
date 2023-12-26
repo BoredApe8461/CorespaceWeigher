@@ -43,9 +43,7 @@
 
 const LOG_TARGET: &str = "tracker";
 
-use csv::WriterBuilder;
-use shared::{file_path, parachains, round_to};
-use std::fs::OpenOptions;
+use shared::{parachains, round_to, write_consumption};
 use subxt::{blocks::Block, utils::H256, OnlineClient, PolkadotConfig};
 use types::{Parachain, Timestamp, WeightConsumption};
 
@@ -113,40 +111,6 @@ async fn note_new_block(
 	write_consumption(para, consumption)?;
 
 	Ok(())
-}
-
-fn write_consumption(
-	para: Parachain,
-	consumption: WeightConsumption,
-) -> Result<(), std::io::Error> {
-	log::info!(
-		target: LOG_TARGET,
-		"Writing weight consumption for Para {}-{} for block: #{}",
-		para.relay_chain, para.para_id, consumption.block_number
-	);
-
-	let file_path = file_path(para);
-	let file = OpenOptions::new().write(true).create(true).append(true).open(file_path)?;
-
-	let mut wtr = WriterBuilder::new().from_writer(file);
-
-	// The data is stored in the sequence described at the beginning of the file.
-	wtr.write_record(&[
-		// Block number:
-		consumption.block_number.to_string(),
-		// Timestamp:
-		consumption.timestamp.to_string(),
-		// Reftime consumption:
-		consumption.ref_time.normal.to_string(),
-		consumption.ref_time.operational.to_string(),
-		consumption.ref_time.mandatory.to_string(),
-		// Proof size:
-		consumption.proof_size.normal.to_string(),
-		consumption.proof_size.operational.to_string(),
-		consumption.proof_size.mandatory.to_string(),
-	])?;
-
-	wtr.flush()
 }
 
 async fn weight_consumption(

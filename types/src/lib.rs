@@ -23,7 +23,7 @@ pub type Timestamp = u64;
 /// Type used for identifying parachains.
 pub type ParaId = u32;
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 #[serde(crate = "rocket::serde")]
 pub enum RelayChain {
 	Polkadot,
@@ -49,7 +49,7 @@ impl From<&str> for RelayChain {
 	}
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(crate = "rocket::serde")]
 pub struct Parachain {
 	/// Name of the parachain.
@@ -64,7 +64,7 @@ pub struct Parachain {
 	pub relay_chain: RelayChain,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WeightConsumption {
 	/// The block number for which the weight consumption is related to.
 	pub block_number: u32,
@@ -76,7 +76,7 @@ pub struct WeightConsumption {
 	pub proof_size: DispatchClassConsumption,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DispatchClassConsumption {
 	/// The percentage of the weight used by user submitted extrinsics compared to the
 	/// maximum potential.

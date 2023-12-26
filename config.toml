@@ -1,0 +1,2 @@
+output_directory = "out/"
+parachains_file = "parachains.json"
