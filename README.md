@@ -59,3 +59,10 @@ A basic example of querying the consumption of a parachain with the paraID 2000 
 ```
 curl http://127.0.0.1:8000/consumption/polkadot/2000
 ```
+
+## Local development
+
+For local development, you can run the entire suite of tests using the command below. It's important to run tests sequentially as some of them depend on shared mock state. This approach ensures that each test runs in isolation without interference from others.
+```
+cargo test -- --test-threads=1
+```

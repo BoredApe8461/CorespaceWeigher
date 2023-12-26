@@ -14,6 +14,7 @@
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
 use rocket::{http::Status, response::Responder, Request, Response};
+use serde::{Deserialize, Serialize};
 
 const LOG_TARGET: &str = "server";
 
@@ -23,7 +24,7 @@ const LOG_TARGET: &str = "server";
 /// - `/consumption`: Used to query consumption data associated with a parachain.
 /// - `/register`: Used to register a parachain for consumption tracking.
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 pub enum Error {
 	/// Cannot register an already registered parachain.
 	AlreadyRegistered,
@@ -42,11 +43,24 @@ pub enum Error {
 
 impl<'r> Responder<'r, 'static> for Error {
 	fn respond_to(self, _: &'r Request<'_>) -> Result<Response<'static>, Status> {
-		let body = format!("Error: {:?}", self);
+		let body = format!("{:?}", self);
 		Response::build()
 			.status(Status::InternalServerError)
 			.sized_body(body.len(), std::io::Cursor::new(body))
 			.ok()
+	}
+}
+
+impl From<String> for Error {
+	fn from(v: String) -> Self {
+		match v.as_str() {
+			"AlreadyRegistered" => Self::AlreadyRegistered,
+			"NotRegistered" => Self::NotRegistered,
+			"ConsumptionDataNotFound" => Self::ConsumptionDataNotFound,
+			"InvalidData" => Self::InvalidData,
+			"ParasDataNotFound" => Self::ParasDataNotFound,
+			_ => panic!("UnknownError"),
+		}
 	}
 }
 

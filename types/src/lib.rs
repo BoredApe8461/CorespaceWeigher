@@ -64,7 +64,7 @@ pub struct Parachain {
 	pub relay_chain: RelayChain,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct WeightConsumption {
 	/// The block number for which the weight consumption is related to.
 	pub block_number: u32,
@@ -76,7 +76,7 @@ pub struct WeightConsumption {
 	pub proof_size: DispatchClassConsumption,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DispatchClassConsumption {
 	/// The percentage of the weight used by user submitted extrinsics compared to the
 	/// maximum potential.
