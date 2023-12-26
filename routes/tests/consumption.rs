@@ -114,6 +114,64 @@ fn pagination_works() {
 	});
 }
 
+#[test]
+fn timestamp_based_filtering_works() {
+	MockEnvironment::new().execute_with(|| {
+		let rocket = rocket::build().mount("/", routes![consumption]);
+		let client = Client::tracked(rocket).expect("valid rocket instance");
+
+		let para = mock_para(Polkadot, 2000);
+		let mock_data = mock_consumption().get(&para).unwrap().clone();
+
+		// CASE 1: setting the starting timestamp filters out the data.
+		let start_timestamp = 6;
+		let response = client.get("/consumption/polkadot/2000?start=6").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let response_data = parse_ok_response(response);
+		let expected_data = mock_data
+			.clone()
+			.into_iter()
+			.filter(|c| c.timestamp >= start_timestamp)
+			.collect::<Vec<WeightConsumption>>();
+
+		// Should only contain the consumption where the timestamp is greater than or equal to 6.
+		assert_eq!(response_data, expected_data);
+
+		// CASE 2: setting the ending timestamp filters out the data.
+		let end_timestamp = 12;
+		let response = client.get("/consumption/polkadot/2000?end=12").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let response_data = parse_ok_response(response);
+		let expected_data = mock_data
+			.clone()
+			.into_iter()
+			.filter(|c| c.timestamp <= end_timestamp)
+			.collect::<Vec<WeightConsumption>>();
+
+		// Should only contain the consumption where the timestamp is less than or equal to 12.
+		assert_eq!(response_data, expected_data);
+
+		// CASE 3: setting the both start and ending timestamp filters out the data.
+		let start_timestamp = 6;
+		let end_timestamp = 6;
+		let response = client.get("/consumption/polkadot/2000?start=6&end=6").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let response_data = parse_ok_response(response);
+		let expected_data = mock_data
+			.into_iter()
+			.filter(|c| c.timestamp >= start_timestamp && c.timestamp <= end_timestamp)
+			.collect::<Vec<WeightConsumption>>();
+
+		assert_eq!(response_data, expected_data);
+		// Should only contain one consumption data since the `start` and `end` are set to the same
+		// value.
+		assert!(response_data.len() == 1);
+	});
+}
+
 pub fn parse_ok_response<'a>(response: LocalResponse<'a>) -> Vec<WeightConsumption> {
 	let body = response.into_string().unwrap();
 	serde_json::from_str(&body).expect("can't parse value")
