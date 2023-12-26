@@ -15,27 +15,13 @@
 
 use crate::*;
 use rocket::{post, serde::json::Json};
-use shared::{parachain, parachains_file_path};
-use std::{
-	fs::{File, OpenOptions},
-	io::{Read, Seek, Write},
-};
+use shared::{parachain, registered_paras, update_paras_file};
 use types::Parachain;
 
 /// Register a parachain for resource utilization tracking.
 #[post("/register_para", data = "<para>")]
 pub fn register_para(para: Json<Parachain>) -> Result<(), Error> {
-	let mut file = OpenOptions::new()
-		.read(true)
-		.create(true)
-		.open(parachains_file_path())
-		.map_err(|_| Error::ParasDataNotFound)?;
-
-	let mut content = String::new();
-	file.read_to_string(&mut content).map_err(|_| Error::InvalidData)?;
-
-	let mut paras: Vec<Parachain> =
-		serde_json::from_str(&content).map_err(|_| Error::InvalidData)?;
+	let mut paras = registered_paras();
 
 	if parachain(para.relay_chain.clone(), para.para_id).is_some() {
 		return Err(Error::AlreadyRegistered);
@@ -43,25 +29,13 @@ pub fn register_para(para: Json<Parachain>) -> Result<(), Error> {
 
 	paras.push(para.into_inner());
 
-	if let Err(err) = update_paras_file(&mut file, paras) {
+	if let Err(err) = update_paras_file(paras) {
 		log::error!(
 			target: LOG_TARGET,
 			"Failed to register para: {:?}",
 			err
 		);
 	}
-
-	Ok(())
-}
-
-fn update_paras_file(file: &mut File, paras: Vec<Parachain>) -> Result<(), String> {
-	let json_data = serde_json::to_string_pretty(&paras).map_err(|_| "Failed to serialize")?;
-
-	file.set_len(0).map_err(|_| "Failed to truncate file")?;
-	file.seek(std::io::SeekFrom::Start(0))
-		.map_err(|_| "Failed to seek to the beginning")?;
-
-	file.write_all(json_data.as_bytes()).map_err(|_| "Failed to write into file")?;
 
 	Ok(())
 }

@@ -2508,6 +2508,7 @@ dependencies = [
  "maplit",
  "rocket",
  "rocket_cors",
+ "scopeguard",
  "serde",
  "serde_json",
  "shared",

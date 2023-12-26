@@ -14,3 +14,38 @@
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
 // TODO: https://github.com/RegionX-Labs/CorespaceWeigher/issues/11
+
+#[cfg(test)]
+use rocket::{
+	http::{ContentType, Status},
+	local::blocking::{Client, LocalResponse},
+	routes,
+};
+use routes::{register::register_para, Error};
+use types::RelayChain::*;
+
+mod mock;
+use mock::{mock_para, MockEnvironment};
+
+#[test]
+fn register_works() {
+	MockEnvironment::new().execute_with(|| {
+		let rocket = rocket::build().mount("/", routes![register_para]);
+		let client = Client::tracked(rocket).expect("valid rocket instance");
+
+		let para = mock_para(Polkadot, 2001);
+
+		let response = client
+			.post("/register_para")
+			.header(ContentType::JSON)
+			.body(serde_json::to_string(&para).unwrap())
+			.dispatch();
+
+		assert_eq!(response.status(), Status::Ok);
+	});
+}
+
+fn _parse_err_response<'a>(response: LocalResponse<'a>) -> Error {
+	let body = response.into_string().unwrap();
+	body.into()
+}

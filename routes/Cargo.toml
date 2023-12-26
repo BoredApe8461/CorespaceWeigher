@@ -18,3 +18,4 @@ shared = { path = "../shared", features = ["test-utils"]}
 
 [dev-dependencies]
 maplit = "1.0.2"
+scopeguard = "1.2.0"

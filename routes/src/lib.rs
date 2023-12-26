@@ -38,7 +38,7 @@ pub enum Error {
 	/// The stored data is invalid. This should never really happen.
 	InvalidData,
 	/// Failed to find the parachains data. This isn't a user error, but a bug in the code itself.
-	ParasDataNotFound,
+	ParachainsFileNotFound,
 }
 
 impl<'r> Responder<'r, 'static> for Error {
@@ -58,7 +58,7 @@ impl From<String> for Error {
 			"NotRegistered" => Self::NotRegistered,
 			"ConsumptionDataNotFound" => Self::ConsumptionDataNotFound,
 			"InvalidData" => Self::InvalidData,
-			"ParasDataNotFound" => Self::ParasDataNotFound,
+			"ParachainsFileNotFound" => Self::ParachainsFileNotFound,
 			_ => panic!("UnknownError"),
 		}
 	}

@@ -206,12 +206,12 @@ fn pagination_and_timestamp_filtering_works() {
 	});
 }
 
-pub fn parse_ok_response<'a>(response: LocalResponse<'a>) -> Vec<WeightConsumption> {
+fn parse_ok_response<'a>(response: LocalResponse<'a>) -> Vec<WeightConsumption> {
 	let body = response.into_string().unwrap();
 	serde_json::from_str(&body).expect("can't parse value")
 }
 
-pub fn parse_err_response<'a>(response: LocalResponse<'a>) -> Error {
+fn parse_err_response<'a>(response: LocalResponse<'a>) -> Error {
 	let body = response.into_string().unwrap();
 	body.into()
 }

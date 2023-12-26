@@ -16,7 +16,7 @@
 use csv::WriterBuilder;
 use std::{
 	fs::{File, OpenOptions},
-	io::Read,
+	io::{Read, Seek, Write},
 };
 use types::{ParaId, Parachain, RelayChain, WeightConsumption};
 
@@ -96,11 +96,53 @@ pub fn write_consumption(
 	wtr.flush()
 }
 
+pub fn registered_paras() -> Vec<Parachain> {
+	// TODO: don't use expect.
+	let mut file = OpenOptions::new()
+		.read(true)
+		.write(true)
+		.create(true)
+		.open(parachains_file_path())
+		.expect("Failed to create the parachains file");
+
+	let mut content = String::new();
+
+	// If this fails it simply means that the registered parachains is still empty.
+	let _ = file.read_to_string(&mut content);
+	let paras: Vec<Parachain> = serde_json::from_str(&content).expect("Failed to serialize");
+
+	paras
+}
+
+// TODO: rename this function to something like add_registered_para.
+pub fn update_paras_file(paras: Vec<Parachain>) -> Result<(), String> {
+	let mut file = OpenOptions::new()
+		.read(true)
+		.write(true)
+		.create(true)
+		.open(parachains_file_path())
+		.expect("Failed to create the parachains file");
+
+	let json_data = serde_json::to_string_pretty(&paras).map_err(|_| "Failed to serialize")?;
+
+	file.set_len(0).map_err(|_| "Failed to truncate file")?;
+	file.seek(std::io::SeekFrom::Start(0))
+		.map_err(|_| "Failed to seek to the beginning")?;
+
+	file.write_all(json_data.as_bytes()).map_err(|_| "Failed to write into file")?;
+
+	Ok(())
+}
+
 // There isn't a good reason to use this other than for testing.
 #[cfg(feature = "test-utils")]
 pub fn reset_mock_environment() {
 	let config = config();
 
+	// Remove the registered paras file:
+	let _ = std::fs::remove_file(config.parachains_file);
+
+	// Remove the output files:
 	let _ = std::fs::create_dir(config.output_directory.clone());
 
 	for entry in
