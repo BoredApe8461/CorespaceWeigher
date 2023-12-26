@@ -19,7 +19,7 @@ use rocket::{
 	local::blocking::{Client, LocalResponse},
 	routes,
 };
-use routes::consumption::consumption;
+use routes::{consumption::consumption, Error};
 use types::{RelayChain::*, WeightConsumption};
 
 mod mock;
@@ -35,12 +35,31 @@ fn getting_all_consumption_data_works() {
 		let response = client.get("/consumption/polkadot/2000").dispatch();
 		assert_eq!(response.status(), Status::Ok);
 
-		let consumption_data = parse_response(response);
+		let consumption_data = parse_ok_response(response);
 		assert_eq!(consumption_data, mock_consumption().get(&para).unwrap().clone());
 	});
 }
 
-pub fn parse_response<'a>(response: LocalResponse<'a>) -> Vec<WeightConsumption> {
+#[test]
+fn parachain_not_found_properly_handled() {
+	MockEnvironment::new().execute_with(|| {
+		let rocket = rocket::build().mount("/", routes![consumption]);
+		let client = Client::tracked(rocket).expect("valid rocket instance");
+
+		let response = client.get("/consumption/polkadot/42").dispatch();
+		assert_eq!(response.status(), Status::InternalServerError);
+
+		let err = parse_err_response(response);
+		assert_eq!(err, Error::NotRegistered);
+	});
+}
+
+pub fn parse_ok_response<'a>(response: LocalResponse<'a>) -> Vec<WeightConsumption> {
 	let body = response.into_string().unwrap();
 	serde_json::from_str(&body).expect("can't parse value")
+}
+
+pub fn parse_err_response<'a>(response: LocalResponse<'a>) -> Error {
+	let body = response.into_string().unwrap();
+	body.into()
 }
