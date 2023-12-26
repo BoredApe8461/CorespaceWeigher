@@ -20,7 +20,7 @@ use std::{
 };
 use types::{ParaId, Parachain, RelayChain, WeightConsumption};
 
-const LOG_TARGET: &str = "tracker";
+const LOG_TARGET: &str = "shared";
 
 pub const CONFIG_FILE: &str = "config.toml";
 
@@ -50,19 +50,11 @@ pub fn parachain(relay_chain: RelayChain, para_id: ParaId) -> Option<Parachain> 
 }
 
 pub fn parachains_file_path() -> String {
-	let config_str = std::fs::read_to_string("config.toml").expect("Failed to read config file");
-
-	let config: Config = toml::from_str(&config_str).expect("Failed to parse config file");
-
-	config.parachains_file
+	config().parachains_file
 }
 
 pub fn output_file_path(para: Parachain) -> String {
-	let config_str = std::fs::read_to_string("config.toml").expect("Failed to read config file");
-
-	let config: Config = toml::from_str(&config_str).expect("Failed to parse config file");
-
-	format!("{}/{}-{}.csv", config.output_directory, para.relay_chain, para.para_id)
+	format!("{}/{}-{}.csv", config().output_directory, para.relay_chain, para.para_id)
 }
 
 pub fn round_to(number: f32, decimals: i32) -> f32 {
@@ -106,8 +98,23 @@ pub fn write_consumption(
 
 // There isn't a good reason to use this other than for testing.
 #[cfg(feature = "test-utils")]
-pub fn delete_conspumption(para: Parachain) {
-	let output_file_path = output_file_path(para);
+pub fn reset_mock_environment() {
+	let config = config();
 
-	std::fs::remove_file(output_file_path).expect("Failed to delete consumption");
+	let _ = std::fs::create_dir(config.output_directory.clone());
+
+	for entry in
+		std::fs::read_dir(config.output_directory).expect("Failed to read output directory")
+	{
+		let entry = entry.expect("Failed to ready entry");
+		let path = entry.path();
+		if path.is_file() {
+			std::fs::remove_file(path).expect("Failed to remove consumption data")
+		}
+	}
+}
+
+fn config() -> Config {
+	let config_str = std::fs::read_to_string("config.toml").expect("Failed to read config file");
+	toml::from_str(&config_str).expect("Failed to parse config file")
 }

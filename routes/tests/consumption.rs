@@ -14,21 +14,33 @@
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
 #[cfg(test)]
-use rocket::local::blocking::Client;
-use rocket::{http::Status, routes};
+use rocket::{
+	http::Status,
+	local::blocking::{Client, LocalResponse},
+	routes,
+};
 use routes::consumption::consumption;
+use types::{RelayChain::*, WeightConsumption};
 
 mod mock;
-use mock::MockEnvironment;
+use mock::{mock_consumption, mock_para, MockEnvironment};
 
 #[test]
 fn getting_all_consumption_data_works() {
 	MockEnvironment::new().execute_with(|| {
 		let rocket = rocket::build().mount("/", routes![consumption]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
+
+		let para = mock_para(Polkadot, 2000);
 		let response = client.get("/consumption/polkadot/2000").dispatch();
 		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_response(response);
+		assert_eq!(consumption_data, mock_consumption().get(&para).unwrap().clone());
 	});
 }
 
-// TODO: https://github.com/RegionX-Labs/CorespaceWeigher/issues/11
+pub fn parse_response<'a>(response: LocalResponse<'a>) -> Vec<WeightConsumption> {
+	let body = response.into_string().unwrap();
+	serde_json::from_str(&body).expect("can't parse value")
+}

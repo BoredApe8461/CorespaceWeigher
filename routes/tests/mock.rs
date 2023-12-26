@@ -15,7 +15,7 @@
 
 #[cfg(test)]
 use maplit::hashmap;
-use shared::{delete_conspumption, write_consumption};
+use shared::{reset_mock_environment, write_consumption};
 use std::collections::HashMap;
 use types::{ParaId, Parachain, RelayChain, RelayChain::*, WeightConsumption};
 
@@ -26,39 +26,11 @@ pub struct MockEnvironment {
 
 impl MockEnvironment {
 	pub fn new() -> Self {
+		// Start with an empty environment.
+		reset_mock_environment();
+
 		// Initialize some mock data:
-		let mock = MockEnvironment {
-			weight_consumptions: hashmap! {
-				mock_para(Polkadot, 2000) => vec![
-					WeightConsumption {
-						block_number: 1,
-						timestamp: 0,
-						ref_time: (0.5, 0.3, 0.2).into(),
-						proof_size: (0.5, 0.3, 0.2).into(),
-					},
-					WeightConsumption {
-						block_number: 2,
-						timestamp: 6,
-						ref_time: (0.1, 0.4, 0.2).into(),
-						proof_size: (0.2, 0.3, 0.3).into(),
-					},
-					WeightConsumption {
-						block_number: 3,
-						timestamp: 12,
-						ref_time: (0.0, 0.2, 0.4).into(),
-						proof_size: (0.1, 0.0, 0.3).into(),
-					},
-				],
-				mock_para(Polkadot, 2005) => vec![
-					WeightConsumption {
-						block_number: 1,
-						timestamp: 0,
-						ref_time: (0.8, 0.0, 0.1).into(),
-						proof_size: (0.6, 0.2, 0.1).into(),
-					},
-				],
-			},
-		};
+		let mock = MockEnvironment { weight_consumptions: mock_consumption() };
 
 		for (para, weight_consumptions) in &mock.weight_consumptions {
 			weight_consumptions.iter().for_each(|consumption| {
@@ -72,15 +44,46 @@ impl MockEnvironment {
 
 	pub fn execute_with<R>(&self, execute: impl FnOnce() -> R) -> R {
 		let result = execute();
-		// Cleanup the mock data after the test is complete:
-		for para in self.weight_consumptions.keys() {
-			delete_conspumption(para.clone());
-		}
+		// Reset the environment once we are complete with the test.
+		reset_mock_environment();
 		result
 	}
 }
 
-fn mock_para(relay: RelayChain, para_id: ParaId) -> Parachain {
+pub fn mock_consumption() -> HashMap<Parachain, Vec<WeightConsumption>> {
+	hashmap! {
+		mock_para(Polkadot, 2000) => vec![
+			WeightConsumption {
+				block_number: 1,
+				timestamp: 0,
+				ref_time: (0.5, 0.3, 0.2).into(),
+				proof_size: (0.5, 0.3, 0.2).into(),
+			},
+			WeightConsumption {
+				block_number: 2,
+				timestamp: 6,
+				ref_time: (0.1, 0.4, 0.2).into(),
+				proof_size: (0.2, 0.3, 0.3).into(),
+			},
+			WeightConsumption {
+				block_number: 3,
+				timestamp: 12,
+				ref_time: (0.0, 0.2, 0.4).into(),
+				proof_size: (0.1, 0.0, 0.3).into(),
+			},
+		],
+		mock_para(Polkadot, 2005) => vec![
+			WeightConsumption {
+				block_number: 1,
+				timestamp: 0,
+				ref_time: (0.8, 0.0, 0.1).into(),
+				proof_size: (0.6, 0.2, 0.1).into(),
+			},
+		],
+	}
+}
+
+pub fn mock_para(relay: RelayChain, para_id: ParaId) -> Parachain {
 	Parachain {
 		name: format!("{}-{}", relay, para_id),
 		rpc_url: format!("wss://{}-{}.com", relay, para_id),
