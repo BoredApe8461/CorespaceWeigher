@@ -71,6 +71,12 @@ pub fn mock_consumption() -> HashMap<Parachain, Vec<WeightConsumption>> {
 				ref_time: (0.0, 0.2, 0.4).into(),
 				proof_size: (0.1, 0.0, 0.3).into(),
 			},
+			WeightConsumption {
+				block_number: 4,
+				timestamp: 18,
+				ref_time: (0.1, 0.0, 0.4).into(),
+				proof_size: (0.2, 0.1, 0.3).into(),
+			},
 		],
 		mock_para(Polkadot, 2005) => vec![
 			WeightConsumption {
