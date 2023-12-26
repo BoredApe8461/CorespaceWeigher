@@ -30,3 +30,5 @@ fn getting_all_consumption_data_works() {
 		assert_eq!(response.status(), Status::Ok);
 	});
 }
+
+// TODO: https://github.com/RegionX-Labs/CorespaceWeigher/issues/11
