@@ -172,6 +172,40 @@ fn timestamp_based_filtering_works() {
 	});
 }
 
+#[test]
+fn pagination_and_timestamp_filtering_works() {
+	MockEnvironment::new().execute_with(|| {
+		let rocket = rocket::build().mount("/", routes![consumption]);
+		let client = Client::tracked(rocket).expect("valid rocket instance");
+
+		let para = mock_para(Polkadot, 2000);
+		let mock_data = mock_consumption().get(&para).unwrap().clone();
+
+		// Combined Case: Filter by timestamp and paginate
+		let start_timestamp = 6;
+		let page_size = 2;
+		let page_number = 1;
+		let response = client
+			.get(format!(
+				"/consumption/polkadot/2000?start={}&page={}&page_size={}",
+				start_timestamp, page_number, page_size
+			))
+			.dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let response_data = parse_ok_response(response);
+		let expected_data = mock_data
+			.into_iter()
+			.filter(|c| c.timestamp >= start_timestamp)
+			.skip(page_size * page_number)
+			.take(page_size)
+			.collect::<Vec<WeightConsumption>>();
+
+		// Check if the data is filtered by timestamp and then paginated
+		assert_eq!(response_data, expected_data);
+	});
+}
+
 pub fn parse_ok_response<'a>(response: LocalResponse<'a>) -> Vec<WeightConsumption> {
 	let body = response.into_string().unwrap();
 	serde_json::from_str(&body).expect("can't parse value")
