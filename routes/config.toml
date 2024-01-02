@@ -1,2 +1,2 @@
 output_directory = "mock-out/"
-parachains_file = "mock-parachains.json"
+registry = "mock-parachains.json"

@@ -13,29 +13,15 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::*;
-use rocket::{post, serde::json::Json};
-use shared::registry::{registered_para, registered_paras, update_registry};
-use types::Parachain;
+const CONFIG_FILE: &str = "config.toml";
 
-/// Register a parachain for resource utilization tracking.
-#[post("/register_para", data = "<para>")]
-pub fn register_para(para: Json<Parachain>) -> Result<(), Error> {
-	let mut paras = registered_paras();
+#[derive(serde::Deserialize)]
+pub struct Config {
+	pub output_directory: String,
+	pub registry: String,
+}
 
-	if registered_para(para.relay_chain.clone(), para.para_id).is_some() {
-		return Err(Error::AlreadyRegistered);
-	}
-
-	paras.push(para.into_inner());
-
-	if let Err(err) = update_registry(paras) {
-		log::error!(
-			target: LOG_TARGET,
-			"Failed to register para: {:?}",
-			err
-		);
-	}
-
-	Ok(())
+pub fn config() -> Config {
+	let config_str = std::fs::read_to_string(CONFIG_FILE).expect("Failed to read config file");
+	toml::from_str(&config_str).expect("Failed to parse config file")
 }

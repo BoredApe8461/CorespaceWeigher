@@ -13,87 +13,17 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-use csv::WriterBuilder;
-use std::{
-	fs::{File, OpenOptions},
-	io::Read,
-};
-use types::{ParaId, Parachain, RelayChain, WeightConsumption};
+pub mod config;
+pub mod consumption;
+pub mod registry;
+
+use crate::config::config;
 
 const LOG_TARGET: &str = "shared";
-
-pub const CONFIG_FILE: &str = "config.toml";
-
-#[derive(serde::Deserialize)]
-struct Config {
-	output_directory: String,
-	parachains_file: String,
-}
-
-pub fn parachains() -> Vec<Parachain> {
-	let mut file = File::open(parachains_file_path()).expect("Hardcoded path is known good; qed");
-
-	let mut content = String::new();
-	if file.read_to_string(&mut content).is_ok() {
-		let paras: Vec<Parachain> = serde_json::from_str(&content).unwrap_or_default();
-		paras
-	} else {
-		Default::default()
-	}
-}
-
-pub fn parachain(relay_chain: RelayChain, para_id: ParaId) -> Option<Parachain> {
-	parachains()
-		.iter()
-		.find(|para| para.relay_chain == relay_chain && para.para_id == para_id)
-		.cloned()
-}
-
-pub fn parachains_file_path() -> String {
-	config().parachains_file
-}
-
-pub fn output_file_path(para: Parachain) -> String {
-	format!("{}/{}-{}.csv", config().output_directory, para.relay_chain, para.para_id)
-}
 
 pub fn round_to(number: f32, decimals: i32) -> f32 {
 	let factor = 10f32.powi(decimals);
 	(number * factor).round() / factor
-}
-
-pub fn write_consumption(
-	para: Parachain,
-	consumption: WeightConsumption,
-) -> Result<(), std::io::Error> {
-	log::info!(
-		target: LOG_TARGET,
-		"Writing weight consumption for Para {}-{} for block: #{}",
-		para.relay_chain, para.para_id, consumption.block_number
-	);
-
-	let output_file_path = output_file_path(para);
-	let file = OpenOptions::new().create(true).append(true).open(output_file_path)?;
-
-	let mut wtr = WriterBuilder::new().from_writer(file);
-
-	// The data is stored in the sequence described at the beginning of the file.
-	wtr.write_record(&[
-		// Block number:
-		consumption.block_number.to_string(),
-		// Timestamp:
-		consumption.timestamp.to_string(),
-		// Reftime consumption:
-		consumption.ref_time.normal.to_string(),
-		consumption.ref_time.operational.to_string(),
-		consumption.ref_time.mandatory.to_string(),
-		// Proof size:
-		consumption.proof_size.normal.to_string(),
-		consumption.proof_size.operational.to_string(),
-		consumption.proof_size.mandatory.to_string(),
-	])?;
-
-	wtr.flush()
 }
 
 // There isn't a good reason to use this other than for testing.
@@ -101,6 +31,10 @@ pub fn write_consumption(
 pub fn reset_mock_environment() {
 	let config = config();
 
+	// Reset the registered paras file:
+	let _registry = registry::init_registry();
+
+	// Remove the output files:
 	let _ = std::fs::create_dir(config.output_directory.clone());
 
 	for entry in
@@ -112,9 +46,4 @@ pub fn reset_mock_environment() {
 			std::fs::remove_file(path).expect("Failed to remove consumption data")
 		}
 	}
-}
-
-fn config() -> Config {
-	let config_str = std::fs::read_to_string("config.toml").expect("Failed to read config file");
-	toml::from_str(&config_str).expect("Failed to parse config file")
 }

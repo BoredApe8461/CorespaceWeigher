@@ -43,7 +43,7 @@
 
 const LOG_TARGET: &str = "tracker";
 
-use shared::{parachains, round_to, write_consumption};
+use shared::{consumption::write_consumption, registry::registered_paras, round_to};
 use subxt::{blocks::Block, utils::H256, OnlineClient, PolkadotConfig};
 use types::{Parachain, Timestamp, WeightConsumption};
 
@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	// Asynchronously subscribes to follow the latest finalized block of each parachain
 	// and continuously fetches the weight consumption.
-	let tasks: Vec<_> = parachains()
+	let tasks: Vec<_> = registered_paras()
 		.into_iter()
 		.map(|para| tokio::spawn(async move { track_weight_consumption(para).await }))
 		.collect();

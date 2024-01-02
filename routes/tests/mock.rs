@@ -15,7 +15,8 @@
 
 #[cfg(test)]
 use maplit::hashmap;
-use shared::{reset_mock_environment, write_consumption};
+use scopeguard::guard;
+use shared::{consumption::write_consumption, registry::update_registry, reset_mock_environment};
 use std::collections::HashMap;
 use types::{ParaId, Parachain, RelayChain, RelayChain::*, WeightConsumption};
 
@@ -39,14 +40,18 @@ impl MockEnvironment {
 			});
 		}
 
+		let _ = update_registry(mock.weight_consumptions.keys().cloned().collect());
+
 		mock
 	}
 
 	pub fn execute_with<R>(&self, execute: impl FnOnce() -> R) -> R {
-		let result = execute();
-		// Reset the environment once we are complete with the test.
-		reset_mock_environment();
-		result
+		let _guard = guard((), |_| {
+			// Reset the environment once we are complete with the test.
+			reset_mock_environment();
+		});
+
+		execute()
 	}
 }
 
