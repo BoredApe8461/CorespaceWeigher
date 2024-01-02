@@ -2503,7 +2503,6 @@ dependencies = [
 name = "routes"
 version = "0.1.0"
 dependencies = [
- "csv",
  "log",
  "maplit",
  "rocket",

@@ -43,7 +43,7 @@
 
 const LOG_TARGET: &str = "tracker";
 
-use shared::{registry::registered_paras, round_to, write_consumption};
+use shared::{consumption::write_consumption, registry::registered_paras, round_to};
 use subxt::{blocks::Block, utils::H256, OnlineClient, PolkadotConfig};
 use types::{Parachain, Timestamp, WeightConsumption};
 

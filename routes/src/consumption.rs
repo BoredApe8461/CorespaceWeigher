@@ -14,10 +14,8 @@
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::Error;
-use csv::ReaderBuilder;
 use rocket::get;
-use shared::{output_file_path, registry::registered_para};
-use std::fs::File;
+use shared::{consumption::get_consumption, registry::registered_para};
 use types::{ParaId, Timestamp, WeightConsumption};
 
 /// Query the consumption data of a parachain.
@@ -34,26 +32,16 @@ pub fn consumption(
 ) -> Result<String, Error> {
 	let para = registered_para(relay.into(), para_id).ok_or(Error::NotRegistered)?;
 
-	let file = File::open(output_file_path(para)).map_err(|_| Error::ConsumptionDataNotFound)?;
-	let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
-
 	let (page, page_size) = (page.unwrap_or_default(), page_size.unwrap_or(u32::MAX));
 	let (start, end) = (start.unwrap_or_default(), end.unwrap_or(Timestamp::MAX));
 
-	let weight_consumptions: Vec<WeightConsumption> = rdr
-		.deserialize::<WeightConsumption>()
-		.filter_map(|result| match result {
-			Ok(consumption) if consumption.timestamp >= start && consumption.timestamp <= end =>
-				Some(consumption),
-			_ => None,
-		})
-		.collect();
-
-	let paginated_weight_consumptions: Vec<WeightConsumption> = weight_consumptions
+	let weight_consumptions: Vec<WeightConsumption> = get_consumption(para)
+		.map_err(|_| Error::ConsumptionDataNotFound)?
 		.into_iter()
+		.filter(|consumption| consumption.timestamp >= start && consumption.timestamp <= end)
 		.skip(page.saturating_mul(page_size) as usize)
 		.take(page_size as usize)
 		.collect();
 
-	serde_json::to_string(&paginated_weight_consumptions).map_err(|_| Error::InvalidData)
+	serde_json::to_string(&weight_consumptions).map_err(|_| Error::InvalidData)
 }

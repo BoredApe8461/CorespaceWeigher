@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::registry_file_path;
+use crate::config::config;
 use std::{
 	fs::{File, OpenOptions},
 	io::{Read, Seek, Write},
@@ -55,12 +55,7 @@ pub fn update_registry(paras: Vec<Parachain>) -> Result<(), String> {
 }
 
 fn get_registry() -> File {
-	match OpenOptions::new()
-		.read(true)
-		.write(true)
-		.create(true)
-		.open(registry_file_path())
-	{
+	match OpenOptions::new().read(true).write(true).create(true).open(config().registry) {
 		Ok(file) => file,
 		Err(_) => init_registry(),
 	}
@@ -68,7 +63,7 @@ fn get_registry() -> File {
 
 pub fn init_registry() -> File {
 	let mut registry =
-		File::create(registry_file_path()).expect("Failed to create registered para file");
+		File::create(config().registry).expect("Failed to create registered para file");
 	// An empty vector
 	registry.write_all(b"[]").expect("Failed to write into registered para file");
 
