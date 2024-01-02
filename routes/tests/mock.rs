@@ -16,7 +16,7 @@
 #[cfg(test)]
 use maplit::hashmap;
 use scopeguard::guard;
-use shared::{reset_mock_environment, update_paras_file, write_consumption};
+use shared::{reset_mock_environment, update_registry, write_consumption};
 use std::collections::HashMap;
 use types::{ParaId, Parachain, RelayChain, RelayChain::*, WeightConsumption};
 
@@ -40,7 +40,7 @@ impl MockEnvironment {
 			});
 		}
 
-		let _ = update_paras_file(mock.weight_consumptions.keys().cloned().collect());
+		let _ = update_registry(mock.weight_consumptions.keys().cloned().collect());
 
 		mock
 	}

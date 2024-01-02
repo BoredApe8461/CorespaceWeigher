@@ -20,7 +20,7 @@ use rocket::{
 	routes,
 };
 use routes::{consumption::consumption, Error};
-use shared::{reset_mock_environment, update_paras_file};
+use shared::{reset_mock_environment, update_registry};
 use types::{RelayChain::*, WeightConsumption};
 
 mod mock;
@@ -64,7 +64,7 @@ fn consumption_data_not_found_handled() {
 	let client = Client::tracked(rocket).expect("valid rocket instance");
 
 	// Register a parachain without storing any consumption data.
-	assert!(update_paras_file(vec![mock_para(Polkadot, 2000)]).is_ok());
+	assert!(update_registry(vec![mock_para(Polkadot, 2000)]).is_ok());
 
 	let response = client.get("/consumption/polkadot/2000").dispatch();
 	assert_eq!(response.status(), Status::InternalServerError);

@@ -15,7 +15,7 @@
 
 use crate::*;
 use rocket::{post, serde::json::Json};
-use shared::{parachain, registered_paras, update_paras_file};
+use shared::{parachain, registered_paras, update_registry};
 use types::Parachain;
 
 /// Register a parachain for resource utilization tracking.
@@ -29,7 +29,7 @@ pub fn register_para(para: Json<Parachain>) -> Result<(), Error> {
 
 	paras.push(para.into_inner());
 
-	if let Err(err) = update_paras_file(paras) {
+	if let Err(err) = update_registry(paras) {
 		log::error!(
 			target: LOG_TARGET,
 			"Failed to register para: {:?}",
