@@ -139,8 +139,11 @@ pub fn update_paras_file(paras: Vec<Parachain>) -> Result<(), String> {
 pub fn reset_mock_environment() {
 	let config = config();
 
-	// Remove the registered paras file:
-	let _ = std::fs::remove_file(config.parachains_file);
+	// Reset the registered paras file:
+	let mut file =
+		File::create(config.parachains_file).expect("Failed to create registered para file");
+	// No parachains are registered by default.
+	file.write_all(b"[]").expect("Failed to write into registered para file");
 
 	// Remove the output files:
 	let _ = std::fs::create_dir(config.output_directory.clone());
