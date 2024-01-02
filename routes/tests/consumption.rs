@@ -20,7 +20,7 @@ use rocket::{
 	routes,
 };
 use routes::{consumption::consumption, Error};
-use shared::{reset_mock_environment, update_registry};
+use shared::{registry::update_registry, reset_mock_environment};
 use types::{RelayChain::*, WeightConsumption};
 
 mod mock;

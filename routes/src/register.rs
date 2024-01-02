@@ -15,7 +15,7 @@
 
 use crate::*;
 use rocket::{post, serde::json::Json};
-use shared::{parachain, registered_paras, update_registry};
+use shared::registry::{registered_para, registered_paras, update_registry};
 use types::Parachain;
 
 /// Register a parachain for resource utilization tracking.
@@ -23,7 +23,7 @@ use types::Parachain;
 pub fn register_para(para: Json<Parachain>) -> Result<(), Error> {
 	let mut paras = registered_paras();
 
-	if parachain(para.relay_chain.clone(), para.para_id).is_some() {
+	if registered_para(para.relay_chain.clone(), para.para_id).is_some() {
 		return Err(Error::AlreadyRegistered);
 	}
 

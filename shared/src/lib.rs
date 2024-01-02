@@ -14,11 +14,10 @@
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
 use csv::WriterBuilder;
-use std::{
-	fs::{File, OpenOptions},
-	io::{Read, Seek, Write},
-};
-use types::{ParaId, Parachain, RelayChain, WeightConsumption};
+use std::fs::OpenOptions;
+use types::{Parachain, WeightConsumption};
+
+pub mod registry;
 
 const LOG_TARGET: &str = "shared";
 
@@ -28,25 +27,6 @@ pub const CONFIG_FILE: &str = "config.toml";
 struct Config {
 	output_directory: String,
 	registry: String,
-}
-
-pub fn registered_parachains() -> Vec<Parachain> {
-	let mut file = File::open(registry_file_path()).expect("Couldn't find the registry file");
-
-	let mut content = String::new();
-	if file.read_to_string(&mut content).is_ok() {
-		let paras: Vec<Parachain> = serde_json::from_str(&content).unwrap_or_default();
-		paras
-	} else {
-		Default::default()
-	}
-}
-
-pub fn parachain(relay_chain: RelayChain, para_id: ParaId) -> Option<Parachain> {
-	registered_parachains()
-		.iter()
-		.find(|para| para.relay_chain == relay_chain && para.para_id == para_id)
-		.cloned()
 }
 
 pub fn registry_file_path() -> String {
@@ -96,40 +76,13 @@ pub fn write_consumption(
 	wtr.flush()
 }
 
-pub fn registered_paras() -> Vec<Parachain> {
-	let mut registry = get_registry();
-	let mut content = String::new();
-
-	// If this fails it simply means that the registered parachains is still empty.
-	let _ = registry.read_to_string(&mut content);
-	let paras: Vec<Parachain> = serde_json::from_str(&content).expect("Failed to serialize");
-
-	paras
-}
-
-pub fn update_registry(paras: Vec<Parachain>) -> Result<(), String> {
-	let mut registry = get_registry();
-	let json_data = serde_json::to_string_pretty(&paras).map_err(|_| "Failed to serialize")?;
-
-	registry.set_len(0).map_err(|_| "Failed to truncate file")?;
-	registry
-		.seek(std::io::SeekFrom::Start(0))
-		.map_err(|_| "Failed to seek to the beginning")?;
-
-	registry
-		.write_all(json_data.as_bytes())
-		.map_err(|_| "Failed to write into file")?;
-
-	Ok(())
-}
-
 // There isn't a good reason to use this other than for testing.
 #[cfg(feature = "test-utils")]
 pub fn reset_mock_environment() {
 	let config = config();
 
 	// Reset the registered paras file:
-	let _registry = init_registry();
+	let _registry = registry::init_registry();
 
 	// Remove the output files:
 	let _ = std::fs::create_dir(config.output_directory.clone());
@@ -148,25 +101,4 @@ pub fn reset_mock_environment() {
 fn config() -> Config {
 	let config_str = std::fs::read_to_string("config.toml").expect("Failed to read config file");
 	toml::from_str(&config_str).expect("Failed to parse config file")
-}
-
-fn get_registry() -> File {
-	match OpenOptions::new()
-		.read(true)
-		.write(true)
-		.create(true)
-		.open(registry_file_path())
-	{
-		Ok(file) => file,
-		Err(_) => init_registry(),
-	}
-}
-
-fn init_registry() -> File {
-	let mut registry =
-		File::create(registry_file_path()).expect("Failed to create registered para file");
-	// An empty vector
-	registry.write_all(b"[]").expect("Failed to write into registered para file");
-
-	registry
 }

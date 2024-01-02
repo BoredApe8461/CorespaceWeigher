@@ -16,7 +16,7 @@
 #[cfg(test)]
 use maplit::hashmap;
 use scopeguard::guard;
-use shared::{reset_mock_environment, update_registry, write_consumption};
+use shared::{registry::update_registry, reset_mock_environment, write_consumption};
 use std::collections::HashMap;
 use types::{ParaId, Parachain, RelayChain, RelayChain::*, WeightConsumption};
 

@@ -16,7 +16,7 @@
 use crate::Error;
 use csv::ReaderBuilder;
 use rocket::get;
-use shared::{output_file_path, parachain};
+use shared::{output_file_path, registry::registered_para};
 use std::fs::File;
 use types::{ParaId, Timestamp, WeightConsumption};
 
@@ -32,7 +32,7 @@ pub fn consumption(
 	page: Option<u32>,
 	page_size: Option<u32>,
 ) -> Result<String, Error> {
-	let para = parachain(relay.into(), para_id).ok_or(Error::NotRegistered)?;
+	let para = registered_para(relay.into(), para_id).ok_or(Error::NotRegistered)?;
 
 	let file = File::open(output_file_path(para)).map_err(|_| Error::ConsumptionDataNotFound)?;
 	let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
