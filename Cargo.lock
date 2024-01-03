@@ -3849,6 +3849,7 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "subxt",
  "toml 0.5.11",
  "types",
 ]

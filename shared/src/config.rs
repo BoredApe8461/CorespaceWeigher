@@ -13,14 +13,26 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
+use subxt::utils::AccountId32;
+use types::Balance;
+
 const CONFIG_FILE: &str = "config.toml";
+
+#[derive(serde::Deserialize)]
+pub struct PaymentInfo {
+	/// The rpc url from the chain where the payment is required to occur.
+	pub rpc_url: String,
+	/// The account that the payment should be sent to.
+	pub receiver: AccountId32,
+	/// The cost of the payment.
+	pub cost: Balance,
+}
 
 #[derive(serde::Deserialize)]
 pub struct Config {
 	pub output_directory: String,
 	pub registry: String,
-	pub free_mode: bool,
-	pub payment_rpc_url: Option<String>,
+	pub payment_info: Option<PaymentInfo>,
 }
 
 pub fn config() -> Config {

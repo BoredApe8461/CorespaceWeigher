@@ -14,10 +14,10 @@
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
-use polkadot_core_primitives::{AccountId, Block, BlockNumber};
+use polkadot_core_primitives::{Block, BlockNumber};
 use rocket::{post, serde::json::Json};
 use shared::{
-	config::config,
+	config::{config, PaymentInfo},
 	registry::{registered_para, registered_paras, update_registry},
 };
 use sp_runtime::generic::SignedBlock;
@@ -29,15 +29,17 @@ use subxt::{
 };
 use types::Parachain;
 
+type AccountId = H256;
+
 #[subxt::subxt(runtime_metadata_path = "../artifacts/metadata.scale")]
 mod polkadot {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(crate = "rocket::serde")]
-pub struct PaymentInfo {
+pub struct Receipt {
 	/// The block number in which the payment occurred.
 	block_number: BlockNumber,
-	/// The extrinsic that pays for the subscription.
+	/// The account that pays for the subscription.
 	payer: AccountId,
 }
 
@@ -49,8 +51,8 @@ pub struct RegistrationData {
 	/// Optional payment-related information.
 	///
 	/// In free mode (where payment is not required), this is ignored and can be `None`.
-	/// Otherwise, it should contain valid `PaymentInfo` details.
-	payment_info: Option<PaymentInfo>,
+	/// Otherwise, it should contain valid `Receipt` details.
+	receipt: Option<Receipt>,
 }
 
 /// Register a parachain for resource utilization tracking.
@@ -64,18 +66,10 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 		return Err(Error::AlreadyRegistered);
 	}
 
-	// If not free mode check if the specified extrinsic contains the correct remark and a transfer.
-	if !config().free_mode {
-		let info = registration_data.payment_info.clone().ok_or(Error::PaymentRequired)?;
+	if let Some(payment_info) = config().payment_info {
+		let receipt = registration_data.receipt.clone().ok_or(Error::PaymentRequired)?;
 
-		if let Some(payment_rpc_url) = config().payment_rpc_url {
-			check_registration_payment(info, payment_rpc_url).await?;
-		} else {
-			log::error!(
-				target: LOG_TARGET,
-				"Free mode is disabled, but the payment_rpc_url is not set in the config",
-			);
-		}
+		validate_registration_payment(payment_info, receipt).await?;
 	}
 
 	paras.push(para);
@@ -99,19 +93,19 @@ curl -X POST http://127.0.0.1:8000/register_para -H "Content-Type: application/j
 		"para_id": 2005,
 		"relay_chain": "Polkadot"
 	},
-	"payment_info": {
+	"receipt": {
 		"block_number": 18881079,
 		"payer": "126X27SbhrV19mBFawys3ovkyBS87SGfYwtwa8J2FjHrtbmA"
 	}
 }'
 */
 
-async fn check_registration_payment(
+async fn validate_registration_payment(
 	payment_info: PaymentInfo,
-	payment_rpc_url: String,
+	receipt: Receipt,
 ) -> Result<(), Error> {
-	if let Ok(rpc_client) = RpcClient::from_url(&payment_rpc_url).await {
-		let params = rpc_params![Some(payment_info.block_number)];
+	if let Ok(rpc_client) = RpcClient::from_url(&payment_info.rpc_url).await {
+		let params = rpc_params![Some(receipt.block_number)];
 		let block_hash: H256 = rpc_client.request("chain_getBlockHash", params).await.unwrap();
 
 		let params = rpc_params![block_hash];
@@ -122,13 +116,30 @@ async fn check_registration_payment(
 		let opaque_block: SignedBlock<Block> = serde_json::from_value(rpc_response).unwrap();
 		let opaque_extrinsics = opaque_block.block.extrinsics;
 
-		if let Ok(online_client) = OnlineClient::<PolkadotConfig>::from_url(payment_rpc_url).await {
-			let payment = polkadot::tx().system().remark(vec![]);
-			let payment_encoded = payment.encode_call_data(&online_client.metadata()).unwrap();
+		let payment = payment_extrinsic(payment_info, receipt).await?;
 
-			println!("{:?}", payment_encoded);
-		}
+		Ok(())
+	} else {
+		Err(Error::PaymentValidationFailed)
 	}
+}
 
-	Ok(())
+async fn payment_extrinsic(payment_info: PaymentInfo, receipt: Receipt) -> Result<Vec<u8>, Error> {
+	if let Ok(online_client) = OnlineClient::<PolkadotConfig>::from_url(payment_info.rpc_url).await
+	{
+		let transfer = polkadot::tx()
+			.balances()
+			.transfer_keep_alive(payment_info.receiver.into(), payment_info.cost);
+
+		let remark = polkadot::tx().system().remark(vec![]);
+
+		let transfer_encoded = transfer.encode_call_data(&online_client.metadata()).unwrap();
+		let remark_encoded = remark.encode_call_data(&online_client.metadata()).unwrap();
+
+		//let batch = polkadot::tx().utility().batch_all(vec![transfer_encoded, remark_encoded]);
+
+		Ok(transfer_encoded)
+	} else {
+		Err(Error::PaymentValidationFailed)
+	}
 }

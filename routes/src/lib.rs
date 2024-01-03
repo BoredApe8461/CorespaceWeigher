@@ -39,6 +39,8 @@ pub enum Error {
 	InvalidData,
 	/// The caller tried to register a parachain without payment.
 	PaymentRequired,
+	/// Failed to validate they payment.
+	PaymentValidationFailed,
 }
 
 impl<'r> Responder<'r, 'static> for Error {
@@ -58,6 +60,7 @@ impl From<String> for Error {
 			"NotRegistered" => Self::NotRegistered,
 			"ConsumptionDataNotFound" => Self::ConsumptionDataNotFound,
 			"InvalidData" => Self::InvalidData,
+			"PaymentValidationFailed" => Self::PaymentValidationFailed,
 			_ => panic!("UnknownError"),
 		}
 	}

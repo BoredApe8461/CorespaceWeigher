@@ -1,4 +1,7 @@
 output_directory = "out/"
 registry = "registry.json"
-free_mode = false
-payment_rpc_url = "wss://rpc.ibp.network/polkadot"
+
+[payment_info]
+rpc_url = "wss://rpc.ibp.network/polkadot"
+receiver = "126X27SbhrV19mBFawys3ovkyBS87SGfYwtwa8J2FjHrtbmA"
+cost = 100
