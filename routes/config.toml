@@ -1,2 +1,3 @@
 output_directory = "mock-out/"
 registry = "mock-parachains.json"
+free_mode = true

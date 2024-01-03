@@ -37,6 +37,8 @@ pub enum Error {
 	ConsumptionDataNotFound,
 	/// The stored data is invalid. This should never really happen.
 	InvalidData,
+	/// The caller tried to register a parachain without payment.
+	PaymentRequired,
 }
 
 impl<'r> Responder<'r, 'static> for Error {

@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-// TODO: https://github.com/RegionX-Labs/CorespaceWeigher/issues/11
-
 #[cfg(test)]
 use rocket::{
 	http::{ContentType, Status},

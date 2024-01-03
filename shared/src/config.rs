@@ -19,6 +19,8 @@ const CONFIG_FILE: &str = "config.toml";
 pub struct Config {
 	pub output_directory: String,
 	pub registry: String,
+	pub free_mode: bool,
+	pub payment_rpc_url: Option<String>,
 }
 
 pub fn config() -> Config {

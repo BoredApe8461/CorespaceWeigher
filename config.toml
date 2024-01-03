@@ -1,2 +1,3 @@
 output_directory = "out/"
 registry = "registry.json"
+free_mode = true
