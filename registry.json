@@ -4,5 +4,11 @@
     "rpc_url": "wss://acala-rpc.dwellir.com",
     "para_id": 2000,
     "relay_chain": "Polkadot"
+  },
+  {
+    "name": "Acala",
+    "rpc_url": "wss://acala-rpc.dwellir.com",
+    "para_id": 2005,
+    "relay_chain": "Polkadot"
   }
 ]

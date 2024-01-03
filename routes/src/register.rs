@@ -14,7 +14,7 @@
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
-use polkadot_core_primitives::Block;
+use polkadot_core_primitives::{AccountId, Block, BlockNumber};
 use rocket::{post, serde::json::Json};
 use shared::{
 	config::config,
@@ -23,9 +23,14 @@ use shared::{
 use sp_runtime::generic::SignedBlock;
 use subxt::{
 	backend::rpc::{rpc_params, RpcClient},
+	tx::TxPayload,
 	utils::H256,
+	OnlineClient, PolkadotConfig,
 };
-use types::{BlockNumber, Parachain};
+use types::Parachain;
+
+#[subxt::subxt(runtime_metadata_path = "../artifacts/metadata.scale")]
+mod polkadot {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(crate = "rocket::serde")]
@@ -33,7 +38,7 @@ pub struct PaymentInfo {
 	/// The block number in which the payment occurred.
 	block_number: BlockNumber,
 	/// The extrinsic that pays for the subscription.
-	extrinsic_hash: H256,
+	payer: AccountId,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
@@ -96,7 +101,7 @@ curl -X POST http://127.0.0.1:8000/register_para -H "Content-Type: application/j
 	},
 	"payment_info": {
 		"block_number": 18881079,
-		"extrinsic_hash": "0x31f1a85007834dd8cc138be74da4f626db752b139043d252c047d401e5f63207"
+		"payer": "126X27SbhrV19mBFawys3ovkyBS87SGfYwtwa8J2FjHrtbmA"
 	}
 }'
 */
@@ -115,8 +120,14 @@ async fn check_registration_payment(
 		let rpc_response = maybe_rpc_response.unwrap();
 
 		let opaque_block: SignedBlock<Block> = serde_json::from_value(rpc_response).unwrap();
+		let opaque_extrinsics = opaque_block.block.extrinsics;
 
-		println!("{:?}", opaque_block);
+		if let Ok(online_client) = OnlineClient::<PolkadotConfig>::from_url(payment_rpc_url).await {
+			let payment = polkadot::tx().system().remark(vec![]);
+			let payment_encoded = payment.encode_call_data(&online_client.metadata()).unwrap();
+
+			println!("{:?}", payment_encoded);
+		}
 	}
 
 	Ok(())
