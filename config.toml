@@ -1,3 +1,4 @@
 output_directory = "out/"
 registry = "registry.json"
-free_mode = true
+free_mode = false
+payment_rpc_url = "wss://rpc.ibp.network/polkadot"

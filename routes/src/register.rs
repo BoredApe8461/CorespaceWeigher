@@ -14,12 +14,17 @@
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::*;
+use polkadot_core_primitives::Block;
 use rocket::{post, serde::json::Json};
 use shared::{
 	config::config,
 	registry::{registered_para, registered_paras, update_registry},
 };
-use subxt::utils::H256;
+use sp_runtime::generic::SignedBlock;
+use subxt::{
+	backend::rpc::{rpc_params, RpcClient},
+	utils::H256,
+};
 use types::{BlockNumber, Parachain};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
@@ -45,7 +50,7 @@ pub struct RegistrationData {
 
 /// Register a parachain for resource utilization tracking.
 #[post("/register_para", data = "<registration_data>")]
-pub fn register_para(registration_data: Json<RegistrationData>) -> Result<(), Error> {
+pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<(), Error> {
 	let para = registration_data.para.clone();
 
 	let mut paras = registered_paras();
@@ -59,7 +64,7 @@ pub fn register_para(registration_data: Json<RegistrationData>) -> Result<(), Er
 		let info = registration_data.payment_info.clone().ok_or(Error::PaymentRequired)?;
 
 		if let Some(payment_rpc_url) = config().payment_rpc_url {
-			check_registration_payment(info, payment_rpc_url)?;
+			check_registration_payment(info, payment_rpc_url).await?;
 		} else {
 			log::error!(
 				target: LOG_TARGET,
@@ -81,9 +86,38 @@ pub fn register_para(registration_data: Json<RegistrationData>) -> Result<(), Er
 	Ok(())
 }
 
-fn check_registration_payment(
+/*
+curl -X POST http://127.0.0.1:8000/register_para -H "Content-Type: application/json" -d '{
+	"para": {
+		"name": "Acala",
+		"rpc_url": "wss://acala-rpc.dwellir.com",
+		"para_id": 2005,
+		"relay_chain": "Polkadot"
+	},
+	"payment_info": {
+		"block_number": 18881079,
+		"extrinsic_hash": "0x31f1a85007834dd8cc138be74da4f626db752b139043d252c047d401e5f63207"
+	}
+}'
+*/
+
+async fn check_registration_payment(
 	payment_info: PaymentInfo,
 	payment_rpc_url: String,
 ) -> Result<(), Error> {
+	if let Ok(rpc_client) = RpcClient::from_url(&payment_rpc_url).await {
+		let params = rpc_params![Some(payment_info.block_number)];
+		let block_hash: H256 = rpc_client.request("chain_getBlockHash", params).await.unwrap();
+
+		let params = rpc_params![block_hash];
+		let maybe_rpc_response: Option<serde_json::Value> =
+			rpc_client.request("chain_getBlock", params).await.unwrap();
+		let rpc_response = maybe_rpc_response.unwrap();
+
+		let opaque_block: SignedBlock<Block> = serde_json::from_value(rpc_response).unwrap();
+
+		println!("{:?}", opaque_block);
+	}
+
 	Ok(())
 }
