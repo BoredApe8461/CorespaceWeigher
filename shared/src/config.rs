@@ -25,7 +25,7 @@ pub struct PaymentInfo {
 	/// The account that the payment should be sent to.
 	pub receiver: AccountId32,
 	/// The cost of the payment.
-	pub cost: Balance,
+	pub cost: u64,
 }
 
 #[derive(serde::Deserialize)]

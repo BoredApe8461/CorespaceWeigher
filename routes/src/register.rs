@@ -13,7 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::*;
+use crate::{
+	register::polkadot::runtime_types::{
+		frame_system::pallet::Call as SystemCall, pallet_balances::pallet::Call as BalancesCall,
+	},
+	*,
+};
 use polkadot_core_primitives::{Block, BlockNumber};
 use rocket::{post, serde::json::Json};
 use shared::{
@@ -24,26 +29,24 @@ use sp_runtime::generic::SignedBlock;
 use subxt::{
 	backend::rpc::{rpc_params, RpcClient},
 	tx::TxPayload,
-	utils::H256,
+	utils::{AccountId32, H256},
 	OnlineClient, PolkadotConfig,
 };
 use types::Parachain;
 
-type AccountId = H256;
-
 #[subxt::subxt(runtime_metadata_path = "../artifacts/metadata.scale")]
 mod polkadot {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct Receipt {
 	/// The block number in which the payment occurred.
 	block_number: BlockNumber,
 	/// The account that pays for the subscription.
-	payer: AccountId,
+	payer: AccountId32,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct RegistrationData {
 	/// The parachain getting registered.
@@ -69,7 +72,7 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 	if let Some(payment_info) = config().payment_info {
 		let receipt = registration_data.receipt.clone().ok_or(Error::PaymentRequired)?;
 
-		validate_registration_payment(payment_info, receipt).await?;
+		validate_registration_payment(para.clone(), payment_info, receipt).await?;
 	}
 
 	paras.push(para);
@@ -101,6 +104,7 @@ curl -X POST http://127.0.0.1:8000/register_para -H "Content-Type: application/j
 */
 
 async fn validate_registration_payment(
+	para: Parachain,
 	payment_info: PaymentInfo,
 	receipt: Receipt,
 ) -> Result<(), Error> {
@@ -115,8 +119,17 @@ async fn validate_registration_payment(
 
 		let opaque_block: SignedBlock<Block> = serde_json::from_value(rpc_response).unwrap();
 		let opaque_extrinsics = opaque_block.block.extrinsics;
+		println!("{:?}", opaque_extrinsics);
 
-		let payment = payment_extrinsic(payment_info, receipt).await?;
+		let payment = opaque_payment_extrinsic(para, payment_info).await?;
+		println!("{:?}", payment);
+		/*
+		if opaque_extrinsics.contains(payment) {
+			// Green light
+		}else {
+			// Red light
+		}
+		*/
 
 		Ok(())
 	} else {
@@ -124,21 +137,24 @@ async fn validate_registration_payment(
 	}
 }
 
-async fn payment_extrinsic(payment_info: PaymentInfo, receipt: Receipt) -> Result<Vec<u8>, Error> {
+async fn opaque_payment_extrinsic(
+	para: Parachain,
+	payment_info: PaymentInfo,
+) -> Result<Vec<u8>, Error> {
 	if let Ok(online_client) = OnlineClient::<PolkadotConfig>::from_url(payment_info.rpc_url).await
 	{
-		let transfer = polkadot::tx()
-			.balances()
-			.transfer_keep_alive(payment_info.receiver.into(), payment_info.cost);
+		let transfer_call = polkadot::Call::Balances(BalancesCall::transfer_keep_alive {
+			dest: payment_info.receiver.into(),
+			value: payment_info.cost as u128,
+		});
 
-		let remark = polkadot::tx().system().remark(vec![]);
+		let remark = format!("{}:{}", para.relay_chain, para.para_id).as_bytes().to_vec();
+		let remark_call = polkadot::Call::System(SystemCall::remark { remark });
 
-		let transfer_encoded = transfer.encode_call_data(&online_client.metadata()).unwrap();
-		let remark_encoded = remark.encode_call_data(&online_client.metadata()).unwrap();
+		let batch = polkadot::tx().utility().batch_all(vec![transfer_call, remark_call]);
+		let batch_encoded = batch.encode_call_data(&online_client.metadata()).unwrap();
 
-		//let batch = polkadot::tx().utility().batch_all(vec![transfer_encoded, remark_encoded]);
-
-		Ok(transfer_encoded)
+		Ok(batch_encoded)
 	} else {
 		Err(Error::PaymentValidationFailed)
 	}
