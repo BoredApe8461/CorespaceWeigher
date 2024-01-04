@@ -16,19 +16,19 @@
 use crate::{
 	register::polkadot::runtime_types::{
 		frame_system::pallet::Call as SystemCall, pallet_balances::pallet::Call as BalancesCall,
+		pallet_utility::pallet::Call as UtilityCall,
 	},
 	*,
 };
-use polkadot_core_primitives::{Block, BlockNumber};
+use parity_scale_codec::Encode;
+use polkadot_core_primitives::BlockNumber;
 use rocket::{post, serde::json::Json};
 use shared::{
 	config::{config, PaymentInfo},
 	registry::{registered_para, registered_paras, update_registry},
 };
-use sp_runtime::generic::SignedBlock;
 use subxt::{
 	backend::rpc::{rpc_params, RpcClient},
-	tx::TxPayload,
 	utils::{AccountId32, H256},
 	OnlineClient, PolkadotConfig,
 };
@@ -108,28 +108,32 @@ async fn validate_registration_payment(
 	payment_info: PaymentInfo,
 	receipt: Receipt,
 ) -> Result<(), Error> {
-	if let Ok(rpc_client) = RpcClient::from_url(&payment_info.rpc_url).await {
+	if let Ok(rpc_client) = RpcClient::from_url(&payment_info.rpc_url.clone()).await {
 		let params = rpc_params![Some(receipt.block_number)];
+		// TODO: ensure that the specified block is finalized.
 		let block_hash: H256 = rpc_client.request("chain_getBlockHash", params).await.unwrap();
 
-		let params = rpc_params![block_hash];
-		let maybe_rpc_response: Option<serde_json::Value> =
-			rpc_client.request("chain_getBlock", params).await.unwrap();
-		let rpc_response = maybe_rpc_response.unwrap();
-
-		let opaque_block: SignedBlock<Block> = serde_json::from_value(rpc_response).unwrap();
-		let opaque_extrinsics = opaque_block.block.extrinsics;
-		println!("{:?}", opaque_extrinsics);
+		let api = OnlineClient::<PolkadotConfig>::from_url(payment_info.rpc_url.clone())
+			.await
+			.unwrap();
+		let block = api.blocks().at(block_hash).await.unwrap();
 
 		let payment = opaque_payment_extrinsic(para, payment_info).await?;
-		println!("{:?}", payment);
-		/*
-		if opaque_extrinsics.contains(payment) {
+
+		let extrinsics = block.extrinsics().await.unwrap();
+		let extrinsics: Vec<Vec<u8>> = extrinsics
+			.iter()
+			.filter_map(|ext| {
+				ext.as_ref().ok().and_then(|e| e.as_root_extrinsic::<polkadot::Call>().ok())
+			})
+			.map(|ext| ext.encode())
+			.collect();
+
+		if extrinsics.contains(&payment.encode()) {
 			// Green light
-		}else {
+		} else {
 			// Red light
 		}
-		*/
 
 		Ok(())
 	} else {
@@ -140,22 +144,17 @@ async fn validate_registration_payment(
 async fn opaque_payment_extrinsic(
 	para: Parachain,
 	payment_info: PaymentInfo,
-) -> Result<Vec<u8>, Error> {
-	if let Ok(online_client) = OnlineClient::<PolkadotConfig>::from_url(payment_info.rpc_url).await
-	{
-		let transfer_call = polkadot::Call::Balances(BalancesCall::transfer_keep_alive {
-			dest: payment_info.receiver.into(),
-			value: payment_info.cost as u128,
-		});
+) -> Result<polkadot::Call, Error> {
+	let transfer_call = polkadot::Call::Balances(BalancesCall::transfer_keep_alive {
+		dest: payment_info.receiver.into(),
+		value: payment_info.cost as u128,
+	});
 
-		let remark = format!("{}:{}", para.relay_chain, para.para_id).as_bytes().to_vec();
-		let remark_call = polkadot::Call::System(SystemCall::remark { remark });
+	let remark = format!("{}:{}", para.relay_chain, para.para_id).as_bytes().to_vec();
+	let remark_call = polkadot::Call::System(SystemCall::remark { remark });
 
-		let batch = polkadot::tx().utility().batch_all(vec![transfer_call, remark_call]);
-		let batch_encoded = batch.encode_call_data(&online_client.metadata()).unwrap();
+	let batch_call =
+		polkadot::Call::Utility(UtilityCall::batch_all { calls: vec![transfer_call, remark_call] });
 
-		Ok(batch_encoded)
-	} else {
-		Err(Error::PaymentValidationFailed)
-	}
+	Ok(batch_call)
 }
