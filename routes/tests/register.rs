@@ -19,7 +19,10 @@ use rocket::{
 	local::blocking::{Client, LocalResponse},
 	routes,
 };
-use routes::{register::register_para, Error};
+use routes::{
+	register::{register_para, Receipt, RegistrationData},
+	Error,
+};
 use shared::registry::{registered_para, registered_paras};
 use types::RelayChain::*;
 
@@ -33,11 +36,15 @@ fn register_works() {
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
 		let para = mock_para(Polkadot, 2001);
+		let registration_data = RegistrationData {
+			para: para.clone(),
+			receipt: Some(Receipt { block_number: 8625079 }),
+		};
 
 		let response = client
 			.post("/register_para")
 			.header(ContentType::JSON)
-			.body(serde_json::to_string(&para).unwrap())
+			.body(serde_json::to_string(&registration_data).unwrap())
 			.dispatch();
 
 		assert_eq!(response.status(), Status::Ok);
@@ -55,11 +62,13 @@ fn cannot_register_same_para_twice() {
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
 		let para = mock_para(Polkadot, 2001);
+		let registration_data =
+			RegistrationData { para, receipt: Some(Receipt { block_number: 8625079 }) };
 
 		let register = client
 			.post("/register_para")
 			.header(ContentType::JSON)
-			.body(serde_json::to_string(&para).unwrap());
+			.body(serde_json::to_string(&registration_data).unwrap());
 
 		// Cannot register the same para twice:
 		assert_eq!(register.clone().dispatch().status(), Status::Ok);

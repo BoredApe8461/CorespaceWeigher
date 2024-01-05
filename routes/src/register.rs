@@ -30,7 +30,7 @@ use shared::{
 use subxt::{
 	backend::rpc::{rpc_params, RpcClient},
 	blocks::Block,
-	utils::{AccountId32, H256},
+	utils::H256,
 	OnlineClient, PolkadotConfig,
 };
 use types::Parachain;
@@ -42,21 +42,19 @@ mod polkadot {}
 #[serde(crate = "rocket::serde")]
 pub struct Receipt {
 	/// The block number in which the payment occurred.
-	block_number: BlockNumber,
-	/// The account that pays for the subscription.
-	payer: AccountId32,
+	pub block_number: BlockNumber,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct RegistrationData {
 	/// The parachain getting registered.
-	para: Parachain,
+	pub para: Parachain,
 	/// Optional payment-related information.
 	///
 	/// In free mode (where payment is not required), this is ignored and can be `None`.
 	/// Otherwise, it should contain valid `Receipt` details.
-	receipt: Option<Receipt>,
+	pub receipt: Option<Receipt>,
 }
 
 /// Register a parachain for resource utilization tracking.
@@ -94,21 +92,6 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 
 	Ok(())
 }
-
-/*
-curl -X POST http://127.0.0.1:8000/register_para -H "Content-Type: application/json" -d '{
-	"para": {
-		"name": "Acala",
-		"rpc_url": "wss://acala-rpc.dwellir.com",
-		"para_id": 2005,
-		"relay_chain": "Polkadot"
-	},
-	"receipt": {
-		"block_number": 18881079,
-		"payer": "126X27SbhrV19mBFawys3ovkyBS87SGfYwtwa8J2FjHrtbmA"
-	}
-}'
-*/
 
 async fn validate_registration_payment(
 	para: Parachain,

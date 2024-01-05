@@ -1,7 +1,7 @@
 output_directory = "out/"
 registry = "registry.json"
 
-[payment_info]
-rpc_url = "wss://rpc.ibp.network/polkadot"
-receiver = "126X27SbhrV19mBFawys3ovkyBS87SGfYwtwa8J2FjHrtbmA"
-cost = "100"
+#[payment_info]
+#rpc_url = "wss://rococo-rpc.polkadot.io"
+#receiver = "5DADsnBXr5DXiEAjdJvruf6c7ZSUR8iXUTATQqJfheGLiEVm"
+#cost = "1000000000" #0.001 ROC
