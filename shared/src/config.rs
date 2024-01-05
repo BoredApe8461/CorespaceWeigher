@@ -14,7 +14,6 @@
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
 use subxt::utils::AccountId32;
-use types::Balance;
 
 const CONFIG_FILE: &str = "config.toml";
 
@@ -25,7 +24,9 @@ pub struct PaymentInfo {
 	/// The account that the payment should be sent to.
 	pub receiver: AccountId32,
 	/// The cost of the payment.
-	pub cost: u64,
+	//
+	// Defined as a `String` since the `toml` crate has issues parsing `u128`.
+	pub cost: String,
 }
 
 #[derive(serde::Deserialize)]

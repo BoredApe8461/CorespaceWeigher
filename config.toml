@@ -4,4 +4,4 @@ registry = "registry.json"
 [payment_info]
 rpc_url = "wss://rpc.ibp.network/polkadot"
 receiver = "126X27SbhrV19mBFawys3ovkyBS87SGfYwtwa8J2FjHrtbmA"
-cost = 100
+cost = "100"

@@ -63,6 +63,12 @@ pub struct RegistrationData {
 pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<(), Error> {
 	let para = registration_data.para.clone();
 
+	log::info!(
+		target: LOG_TARGET,
+		"Attempting to register para: {}:{}",
+		para.relay_chain, para.para_id
+	);
+
 	let mut paras = registered_paras();
 
 	if registered_para(para.relay_chain.clone(), para.para_id).is_some() {
@@ -108,36 +114,34 @@ async fn validate_registration_payment(
 	payment_info: PaymentInfo,
 	receipt: Receipt,
 ) -> Result<(), Error> {
-	if let Ok(rpc_client) = RpcClient::from_url(&payment_info.rpc_url.clone()).await {
-		let params = rpc_params![Some(receipt.block_number)];
-		// TODO: ensure that the specified block is finalized.
-		let block_hash: H256 = rpc_client.request("chain_getBlockHash", params).await.unwrap();
+	let rpc_client = RpcClient::from_url(&payment_info.rpc_url.clone())
+		.await
+		.map_err(|_| Error::PaymentValidationFailed)?;
 
-		let api = OnlineClient::<PolkadotConfig>::from_url(payment_info.rpc_url.clone())
-			.await
-			.unwrap();
-		let block = api.blocks().at(block_hash).await.unwrap();
+	let params = rpc_params![Some(receipt.block_number)];
+	// TODO: ensure that the specified block is finalized.
+	let block_hash: H256 = rpc_client.request("chain_getBlockHash", params).await.unwrap();
 
-		let payment = opaque_payment_extrinsic(para, payment_info).await?;
+	let api = OnlineClient::<PolkadotConfig>::from_url(payment_info.rpc_url.clone())
+		.await
+		.map_err(|_| Error::PaymentValidationFailed)?;
 
-		let extrinsics = block.extrinsics().await.unwrap();
-		let extrinsics: Vec<Vec<u8>> = extrinsics
-			.iter()
-			.filter_map(|ext| {
-				ext.as_ref().ok().and_then(|e| e.as_root_extrinsic::<polkadot::Call>().ok())
-			})
-			.map(|ext| ext.encode())
-			.collect();
+	let block = api.blocks().at(block_hash).await.map_err(|_| Error::PaymentValidationFailed)?;
+	let payment = opaque_payment_extrinsic(para, payment_info).await?;
 
-		if extrinsics.contains(&payment.encode()) {
-			// Green light
-		} else {
-			// Red light
-		}
+	let extrinsics = block.extrinsics().await.unwrap();
+	let extrinsics: Vec<Vec<u8>> = extrinsics
+		.iter()
+		.filter_map(|ext| {
+			ext.as_ref().ok().and_then(|e| e.as_root_extrinsic::<polkadot::Call>().ok())
+		})
+		.map(|ext| ext.encode())
+		.collect();
 
+	if extrinsics.contains(&payment.encode()) {
 		Ok(())
 	} else {
-		Err(Error::PaymentValidationFailed)
+		Err(Error::PaymentNotFound)
 	}
 }
 
@@ -145,16 +149,25 @@ async fn opaque_payment_extrinsic(
 	para: Parachain,
 	payment_info: PaymentInfo,
 ) -> Result<polkadot::Call, Error> {
-	let transfer_call = polkadot::Call::Balances(BalancesCall::transfer_keep_alive {
-		dest: payment_info.receiver.into(),
-		value: payment_info.cost as u128,
-	});
+	if let Ok(cost) = payment_info.cost.parse::<u128>() {
+		let transfer_call = polkadot::Call::Balances(BalancesCall::transfer_keep_alive {
+			dest: payment_info.receiver.into(),
+			value: cost,
+		});
 
-	let remark = format!("{}:{}", para.relay_chain, para.para_id).as_bytes().to_vec();
-	let remark_call = polkadot::Call::System(SystemCall::remark { remark });
+		let remark = format!("{}:{}", para.relay_chain, para.para_id).as_bytes().to_vec();
+		let remark_call = polkadot::Call::System(SystemCall::remark { remark });
 
-	let batch_call =
-		polkadot::Call::Utility(UtilityCall::batch_all { calls: vec![transfer_call, remark_call] });
+		let batch_call = polkadot::Call::Utility(UtilityCall::batch_all {
+			calls: vec![transfer_call, remark_call],
+		});
 
-	Ok(batch_call)
+		Ok(batch_call)
+	} else {
+		log::error!(
+			target: LOG_TARGET,
+			"Failed to parse cost",
+		);
+		Err(Error::PaymentValidationFailed)
+	}
 }

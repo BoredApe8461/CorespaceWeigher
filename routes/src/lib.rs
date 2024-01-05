@@ -41,6 +41,8 @@ pub enum Error {
 	PaymentRequired,
 	/// Failed to validate they payment.
 	PaymentValidationFailed,
+	/// The payment was not found in the specified block.
+	PaymentNotFound,
 }
 
 impl<'r> Responder<'r, 'static> for Error {
@@ -61,6 +63,7 @@ impl From<String> for Error {
 			"ConsumptionDataNotFound" => Self::ConsumptionDataNotFound,
 			"InvalidData" => Self::InvalidData,
 			"PaymentValidationFailed" => Self::PaymentValidationFailed,
+			"PaymentNotFound" => Self::PaymentNotFound,
 			_ => panic!("UnknownError"),
 		}
 	}
