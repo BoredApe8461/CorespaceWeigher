@@ -37,6 +37,14 @@ pub enum Error {
 	ConsumptionDataNotFound,
 	/// The stored data is invalid. This should never really happen.
 	InvalidData,
+	/// The caller tried to register a parachain without payment.
+	PaymentRequired,
+	/// Failed to validate they payment.
+	PaymentValidationFailed,
+	/// The receipt is not referencing a finalized block.
+	UnfinalizedPayment,
+	/// The payment was not found in the specified block.
+	PaymentNotFound,
 }
 
 impl<'r> Responder<'r, 'static> for Error {
@@ -56,6 +64,10 @@ impl From<String> for Error {
 			"NotRegistered" => Self::NotRegistered,
 			"ConsumptionDataNotFound" => Self::ConsumptionDataNotFound,
 			"InvalidData" => Self::InvalidData,
+			"PaymentRequired" => Self::PaymentRequired,
+			"PaymentValidationFailed" => Self::PaymentValidationFailed,
+			"UnfinalizedPayment" => Self::UnfinalizedPayment,
+			"PaymentNotFound" => Self::PaymentNotFound,
 			_ => panic!("UnknownError"),
 		}
 	}

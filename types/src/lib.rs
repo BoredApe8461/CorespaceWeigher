@@ -23,6 +23,8 @@ pub type Timestamp = u64;
 /// Type used for identifying parachains.
 pub type ParaId = u32;
 
+pub type Balance = u128;
+
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 #[serde(crate = "rocket::serde")]
 pub enum RelayChain {
