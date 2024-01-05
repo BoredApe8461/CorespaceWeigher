@@ -20,7 +20,7 @@ use rocket::{
 	routes,
 };
 use routes::{
-	register::{register_para, Receipt, RegistrationData},
+	register::{register_para, RegistrationData},
 	Error,
 };
 use shared::registry::{registered_para, registered_paras};
@@ -36,10 +36,8 @@ fn register_works() {
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
 		let para = mock_para(Polkadot, 2001);
-		let registration_data = RegistrationData {
-			para: para.clone(),
-			receipt: Some(Receipt { block_number: 8625079 }),
-		};
+		let registration_data =
+			RegistrationData { para: para.clone(), payment_block_number: Some(8625079) };
 
 		let response = client
 			.post("/register_para")
@@ -62,8 +60,7 @@ fn cannot_register_same_para_twice() {
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
 		let para = mock_para(Polkadot, 2001);
-		let registration_data =
-			RegistrationData { para, receipt: Some(Receipt { block_number: 8625079 }) };
+		let registration_data = RegistrationData { para, payment_block_number: Some(8625079) };
 
 		let register = client
 			.post("/register_para")

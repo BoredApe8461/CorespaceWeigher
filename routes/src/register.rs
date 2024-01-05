@@ -40,21 +40,14 @@ mod polkadot {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct Receipt {
-	/// The block number in which the payment occurred.
-	pub block_number: BlockNumber,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
 pub struct RegistrationData {
 	/// The parachain getting registered.
 	pub para: Parachain,
-	/// Optional payment-related information.
+	/// The block in which the payment occurred for the specific parachain.
 	///
 	/// In free mode (where payment is not required), this is ignored and can be `None`.
-	/// Otherwise, it should contain valid `Receipt` details.
-	pub receipt: Option<Receipt>,
+	/// Otherwise, it should contain a valid block number.
+	pub payment_block_number: Option<BlockNumber>,
 }
 
 /// Register a parachain for resource utilization tracking.
@@ -75,9 +68,10 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 	}
 
 	if let Some(payment_info) = config().payment_info {
-		let receipt = registration_data.receipt.clone().ok_or(Error::PaymentRequired)?;
+		let payment_block_number =
+			registration_data.payment_block_number.clone().ok_or(Error::PaymentRequired)?;
 
-		validate_registration_payment(para.clone(), payment_info, receipt).await?;
+		validate_registration_payment(para.clone(), payment_info, payment_block_number).await?;
 	}
 
 	paras.push(para);
@@ -96,7 +90,7 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 async fn validate_registration_payment(
 	para: Parachain,
 	payment_info: PaymentInfo,
-	receipt: Receipt,
+	payment_block_number: BlockNumber,
 ) -> Result<(), Error> {
 	// TODO: Could this code be improved so that we don't have to instantiate both clients?
 	let rpc_client = RpcClient::from_url(&payment_info.rpc_url.clone())
@@ -107,14 +101,14 @@ async fn validate_registration_payment(
 		.await
 		.map_err(|_| Error::PaymentValidationFailed)?;
 
-	// Ensure that the receipt is from a finalized block.
+	// Ensure that the `payment_block_number` is from a finalized block.
 	let last_finalized =
 		get_last_finalized_block(rpc_client.clone(), online_client.clone()).await?;
-	if receipt.block_number > last_finalized {
+	if payment_block_number > last_finalized {
 		return Err(Error::UnfinalizedPayment)
 	}
 
-	let block_hash = get_block_hash(rpc_client, receipt.block_number).await?;
+	let block_hash = get_block_hash(rpc_client, payment_block_number).await?;
 	let block = get_block(online_client, block_hash).await?;
 
 	ensure_contains_payment(para, payment_info, block).await
