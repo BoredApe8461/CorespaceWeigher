@@ -64,7 +64,9 @@ impl From<String> for Error {
 			"NotRegistered" => Self::NotRegistered,
 			"ConsumptionDataNotFound" => Self::ConsumptionDataNotFound,
 			"InvalidData" => Self::InvalidData,
+			"PaymentRequired" => Self::PaymentRequired,
 			"PaymentValidationFailed" => Self::PaymentValidationFailed,
+			"UnfinalizedPayment" => Self::UnfinalizedPayment,
 			"PaymentNotFound" => Self::PaymentNotFound,
 			_ => panic!("UnknownError"),
 		}

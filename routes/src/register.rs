@@ -69,7 +69,7 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 
 	if let Some(payment_info) = config().payment_info {
 		let payment_block_number =
-			registration_data.payment_block_number.clone().ok_or(Error::PaymentRequired)?;
+			registration_data.payment_block_number.ok_or(Error::PaymentRequired)?;
 
 		validate_registration_payment(para.clone(), payment_info, payment_block_number).await?;
 	}
