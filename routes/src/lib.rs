@@ -41,6 +41,8 @@ pub enum Error {
 	PaymentRequired,
 	/// Failed to validate they payment.
 	PaymentValidationFailed,
+	/// The receipt is not referencing a finalized block.
+	UnfinalizedPayment,
 	/// The payment was not found in the specified block.
 	PaymentNotFound,
 }

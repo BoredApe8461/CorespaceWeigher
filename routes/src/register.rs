@@ -29,6 +29,7 @@ use shared::{
 };
 use subxt::{
 	backend::rpc::{rpc_params, RpcClient},
+	blocks::Block,
 	utils::{AccountId32, H256},
 	OnlineClient, PolkadotConfig,
 };
@@ -114,22 +115,36 @@ async fn validate_registration_payment(
 	payment_info: PaymentInfo,
 	receipt: Receipt,
 ) -> Result<(), Error> {
+	// TODO: Could this code be improved so that we don't have to instantiate both clients?
 	let rpc_client = RpcClient::from_url(&payment_info.rpc_url.clone())
 		.await
 		.map_err(|_| Error::PaymentValidationFailed)?;
 
-	let params = rpc_params![Some(receipt.block_number)];
-	// TODO: ensure that the specified block is finalized.
-	let block_hash: H256 = rpc_client.request("chain_getBlockHash", params).await.unwrap();
-
-	let api = OnlineClient::<PolkadotConfig>::from_url(payment_info.rpc_url.clone())
+	let online_client = OnlineClient::<PolkadotConfig>::from_url(payment_info.rpc_url.clone())
 		.await
 		.map_err(|_| Error::PaymentValidationFailed)?;
 
-	let block = api.blocks().at(block_hash).await.map_err(|_| Error::PaymentValidationFailed)?;
+	// Ensure that the receipt is from a finalized block.
+	let last_finalized =
+		get_last_finalized_block(rpc_client.clone(), online_client.clone()).await?;
+	if receipt.block_number > last_finalized {
+		return Err(Error::UnfinalizedPayment)
+	}
+
+	let block_hash = get_block_hash(rpc_client, receipt.block_number).await?;
+	let block = get_block(online_client, block_hash).await?;
+
+	ensure_contains_payment(para, payment_info, block).await
+}
+
+async fn ensure_contains_payment(
+	para: Parachain,
+	payment_info: PaymentInfo,
+	block: Block<PolkadotConfig, OnlineClient<PolkadotConfig>>,
+) -> Result<(), Error> {
 	let payment = opaque_payment_extrinsic(para, payment_info).await?;
 
-	let extrinsics = block.extrinsics().await.unwrap();
+	let extrinsics = block.extrinsics().await.map_err(|_| Error::PaymentValidationFailed)?;
 	let extrinsics: Vec<Vec<u8>> = extrinsics
 		.iter()
 		.filter_map(|ext| {
@@ -170,4 +185,36 @@ async fn opaque_payment_extrinsic(
 		);
 		Err(Error::PaymentValidationFailed)
 	}
+}
+
+async fn get_last_finalized_block(
+	rpc_client: RpcClient,
+	online_client: OnlineClient<PolkadotConfig>,
+) -> Result<BlockNumber, Error> {
+	let params = rpc_params![];
+	let block_hash: H256 = rpc_client
+		.request("chain_getFinalizedHead", params)
+		.await
+		.map_err(|_| Error::PaymentValidationFailed)?;
+
+	let block = get_block(online_client, block_hash).await?;
+
+	Ok(block.number())
+}
+
+async fn get_block(
+	api: OnlineClient<PolkadotConfig>,
+	block_hash: H256,
+) -> Result<Block<PolkadotConfig, OnlineClient<PolkadotConfig>>, Error> {
+	api.blocks().at(block_hash).await.map_err(|_| Error::PaymentValidationFailed)
+}
+
+async fn get_block_hash(rpc_client: RpcClient, block_number: BlockNumber) -> Result<H256, Error> {
+	let params = rpc_params![Some(block_number)];
+	let block_hash: H256 = rpc_client
+		.request("chain_getBlockHash", params)
+		.await
+		.map_err(|_| Error::PaymentValidationFailed)?;
+
+	Ok(block_hash)
 }
