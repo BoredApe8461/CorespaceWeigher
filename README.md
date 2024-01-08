@@ -37,6 +37,14 @@ The `tracker` binary is responsible for tracking the actual consumption data of 
 
 The `server` binary provides a web interface that can be used for registering a parachain for consumption tracking, as well as for querying all the consumption data.
 
+### Watchdog 🐕
+
+WebSocket connections can be closed due to underlying networking issues. In such cases, the tracking of parachain data would stop. For this reason, a script called 'watchdog' is introduced to ensure the tracker attempts to create a new connection whenever the current one is broken.
+
+```sh
+./scripts/watchdog.sh
+```
+
 ## Web API
 
 #### Registering a parachain
