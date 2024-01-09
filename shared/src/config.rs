@@ -14,6 +14,7 @@
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
 use subxt::utils::AccountId32;
+use types::Timestamp;
 
 const CONFIG_FILE: &str = "config.toml";
 
@@ -27,6 +28,8 @@ pub struct PaymentInfo {
 	//
 	// Defined as a `String` since the `toml` crate has issues parsing `u128`.
 	pub cost: String,
+	/// This defines the duration that a single subscription payment will cover.
+	pub subscription_duration: Timestamp,
 }
 
 #[derive(serde::Deserialize)]

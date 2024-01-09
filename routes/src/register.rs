@@ -25,6 +25,7 @@ use polkadot_core_primitives::BlockNumber;
 use rocket::{post, serde::json::Json};
 use shared::{
 	config::{config, PaymentInfo},
+	current_timestamp,
 	registry::{registered_para, registered_paras, update_registry},
 };
 use subxt::{
@@ -53,7 +54,7 @@ pub struct RegistrationData {
 /// Register a parachain for resource utilization tracking.
 #[post("/register_para", data = "<registration_data>")]
 pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<(), Error> {
-	let para = registration_data.para.clone();
+	let mut para = registration_data.para.clone();
 
 	log::info!(
 		target: LOG_TARGET,
@@ -73,6 +74,9 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 
 		validate_registration_payment(para.clone(), payment_info, payment_block_number).await?;
 	}
+
+	// Set the `last_payment_timestamp` to now. We can't trust the user to provide a valid value ;)
+	para.last_payment_timestamp = current_timestamp();
 
 	paras.push(para);
 

@@ -37,7 +37,7 @@ fn register_works() {
 		let rocket = rocket::build().mount("/", routes![register_para]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2001);
+		let mut para = mock_para(Polkadot, 2001);
 		let registration_data =
 			RegistrationData { para: para.clone(), payment_block_number: Some(PARA_2001_PAYMENT) };
 
@@ -49,9 +49,14 @@ fn register_works() {
 
 		assert_eq!(response.status(), Status::Ok);
 
+		let response_para = registered_para(Polkadot, 2001).unwrap();
+
+		// Set the `last_payment_timestamp` to the proper value.
+		para.last_payment_timestamp = response_para.last_payment_timestamp;
+
 		// Ensure the parachain is properly registered:
 		assert_eq!(registered_paras(), vec![para.clone()]);
-		assert_eq!(registered_para(Polkadot, 2001), Some(para));
+		assert_eq!(response_para, para);
 	});
 }
 

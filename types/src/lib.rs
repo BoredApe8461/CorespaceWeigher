@@ -64,6 +64,10 @@ pub struct Parachain {
 	pub para_id: ParaId,
 	/// The relay chain that the parachain is using for block validation.
 	pub relay_chain: RelayChain,
+	/// The last time the subscription was paid for the para.
+	///
+	/// This is initially set to the timestamp when the para was registered.
+	pub last_payment_timestamp: Timestamp,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
