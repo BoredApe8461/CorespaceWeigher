@@ -75,3 +75,4 @@ impl From<String> for Error {
 
 pub mod consumption;
 pub mod register;
+pub mod registry;
