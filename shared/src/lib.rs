@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::time::{SystemTime, UNIX_EPOCH};
+use types::Timestamp;
+
 pub mod config;
 pub mod consumption;
 pub mod registry;
@@ -21,9 +24,16 @@ use crate::config::config;
 
 const LOG_TARGET: &str = "shared";
 
+/// Rounds a number to a fixed number of decimals.
 pub fn round_to(number: f32, decimals: i32) -> f32 {
 	let factor = 10f32.powi(decimals);
 	(number * factor).round() / factor
+}
+
+/// Returns the current time since UNIX EPOCH.
+pub fn current_timestamp() -> Timestamp {
+	// It is fine to use `unwrap_or_default` since the current time will never be before the UNIX EPOCH.
+	SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
 }
 
 // There isn't a good reason to use this other than for testing.

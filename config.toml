@@ -5,3 +5,5 @@ registry = "registry.json"
 #rpc_url = "wss://rococo-rpc.polkadot.io"
 #receiver = "5DADsnBXr5DXiEAjdJvruf6c7ZSUR8iXUTATQqJfheGLiEVm"
 #cost = "1000000000" #0.001 ROC
+# 2,419,200 is 4 weeks in seconds.
+#subscription_duration = 2419200 
