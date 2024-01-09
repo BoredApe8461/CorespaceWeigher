@@ -13,7 +13,6 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-#[cfg(test)]
 use rocket::{
 	http::Status,
 	local::blocking::{Client, LocalResponse},

@@ -14,7 +14,6 @@
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
 use polkadot_core_primitives::BlockNumber;
-#[cfg(test)]
 use rocket::{
 	http::{ContentType, Status},
 	local::blocking::{Client, LocalResponse},

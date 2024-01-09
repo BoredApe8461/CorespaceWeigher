@@ -13,20 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-/// Web API for interacting with the Consumption Tracker service.
-///
-/// This API exposes two main endpoints:
-/// - `/consumption`: Used to query consumption data associated with a parachain.
-/// - `/register`: Used to register a parachain for consumption tracking.
-use rocket_cors::CorsOptions;
-use routes::{consumption::consumption, register::register_para, registry::registry};
+use crate::Error;
+use rocket::get;
+use shared::registry::registered_paras;
 
-#[macro_use]
-extern crate rocket;
+/// Query all the registered parachains.
+#[get("/registry")]
+pub fn registry() -> Result<String, Error> {
+	let registered_paras = registered_paras();
 
-#[launch]
-fn rocket() -> _ {
-	rocket::build()
-		.attach(CorsOptions::default().to_cors().unwrap())
-		.mount("/", routes![consumption, register_para, registry])
+	serde_json::to_string(&registered_paras).map_err(|_| Error::InvalidData)
 }
