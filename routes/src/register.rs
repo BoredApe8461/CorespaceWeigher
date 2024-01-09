@@ -25,8 +25,8 @@ use polkadot_core_primitives::BlockNumber;
 use rocket::{post, serde::json::Json};
 use shared::{
 	config::{config, PaymentInfo},
-	registry::{registered_para, registered_paras, update_registry},
 	current_timestamp,
+	registry::{registered_para, registered_paras, update_registry},
 };
 use subxt::{
 	backend::rpc::{rpc_params, RpcClient},

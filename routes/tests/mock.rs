@@ -16,7 +16,10 @@
 #[cfg(test)]
 use maplit::hashmap;
 use scopeguard::guard;
-use shared::{consumption::write_consumption, registry::update_registry, reset_mock_environment, current_timestamp};
+use shared::{
+	consumption::write_consumption, current_timestamp, registry::update_registry,
+	reset_mock_environment,
+};
 use std::collections::HashMap;
 use types::{ParaId, Parachain, RelayChain, RelayChain::*, WeightConsumption};
 
@@ -100,6 +103,6 @@ pub fn mock_para(relay: RelayChain, para_id: ParaId) -> Parachain {
 		rpc_url: format!("wss://{}-{}.com", relay, para_id),
 		para_id,
 		relay_chain: relay,
-		last_payment_timestamp: 0
+		last_payment_timestamp: 0,
 	}
 }

@@ -32,7 +32,8 @@ pub fn round_to(number: f32, decimals: i32) -> f32 {
 
 /// Returns the current time since UNIX EPOCH.
 pub fn current_timestamp() -> Timestamp {
-	// It is fine to use `unwrap_or_default` since the current time will never be before the UNIX EPOCH.
+	// It is fine to use `unwrap_or_default` since the current time will never be before the UNIX
+	// EPOCH.
 	SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
 }
 
