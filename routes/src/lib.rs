@@ -28,7 +28,7 @@ const LOG_TARGET: &str = "server";
 pub enum Error {
 	/// Cannot register an already registered parachain.
 	AlreadyRegistered,
-	/// Tried to get the consumption of a parachain that is not registered.
+	/// The specified para is not registered.
 	NotRegistered,
 	/// Indicates that the consumption data for the parachain was not found.
 	///
@@ -74,5 +74,6 @@ impl From<String> for Error {
 }
 
 pub mod consumption;
+pub mod extend_subscription;
 pub mod register;
 pub mod registry;

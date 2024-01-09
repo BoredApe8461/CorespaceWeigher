@@ -3847,6 +3847,8 @@ version = "0.1.0"
 dependencies = [
  "csv",
  "log",
+ "parity-scale-codec",
+ "polkadot-core-primitives",
  "serde",
  "serde_json",
  "subxt",

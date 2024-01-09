@@ -18,6 +18,7 @@ use types::Timestamp;
 
 pub mod config;
 pub mod consumption;
+pub mod payment;
 pub mod registry;
 
 use crate::config::config;

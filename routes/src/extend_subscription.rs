@@ -26,7 +26,6 @@ use rocket::{post, serde::json::Json};
 use shared::{
 	config::{config, PaymentInfo},
 	current_timestamp,
-	payment::validate_registration_payment,
 	registry::{registered_para, registered_paras, update_registry},
 };
 use subxt::{
@@ -35,58 +34,32 @@ use subxt::{
 	utils::H256,
 	OnlineClient, PolkadotConfig,
 };
-use types::Parachain;
-
-#[subxt::subxt(runtime_metadata_path = "../artifacts/metadata.scale")]
-mod polkadot {}
+use types::{ParaId, RelayChain};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct RegistrationData {
-	/// The parachain getting registered.
-	pub para: Parachain,
+pub struct ExtendSubscriptionData {
+	/// The parachain which is getting its subscription extended.
+	pub para: (RelayChain, ParaId),
 	/// The block in which the payment occurred for the specific parachain.
-	///
-	/// In free mode (where payment is not required), this is ignored and can be `None`.
-	/// Otherwise, it should contain a valid block number.
-	pub payment_block_number: Option<BlockNumber>,
+	pub payment_block_number: BlockNumber,
 }
 
-/// Register a parachain for resource utilization tracking.
-#[post("/register_para", data = "<registration_data>")]
-pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<(), Error> {
-	let mut para = registration_data.para.clone();
+/// Extend the subscription of a parachain for resource utilization tracking.
+#[post("/extend_subscription", data = "<data>")]
+pub async fn extend_subscription(data: Json<ExtendSubscriptionData>) -> Result<(), Error> {
+	let (relay_chain, para_id) = data.para.clone();
 
 	log::info!(
 		target: LOG_TARGET,
-		"Attempting to register para: {}:{}",
-		para.relay_chain, para.para_id
+		"Attempting to extend subscription for para: {}:{}",
+		relay_chain, para_id
 	);
 
 	let mut paras = registered_paras();
 
-	if registered_para(para.relay_chain.clone(), para.para_id).is_some() {
-		return Err(Error::AlreadyRegistered);
-	}
-
-	if let Some(payment_info) = config().payment_info {
-		let payment_block_number =
-			registration_data.payment_block_number.ok_or(Error::PaymentRequired)?;
-
-		validate_registration_payment(para.clone(), payment_info, payment_block_number).await?;
-	}
-
-	// Set the `last_payment_timestamp` to now. We can't trust the user to provide a valid value ;)
-	para.last_payment_timestamp = current_timestamp();
-
-	paras.push(para);
-
-	if let Err(err) = update_registry(paras) {
-		log::error!(
-			target: LOG_TARGET,
-			"Failed to register para: {:?}",
-			err
-		);
+	if registered_para(relay_chain.clone(), para_id).is_some() {
+		return Err(Error::NotRegistered);
 	}
 
 	Ok(())
