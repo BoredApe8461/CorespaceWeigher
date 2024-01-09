@@ -19,10 +19,10 @@ use rocket::{
 	routes,
 };
 use routes::registry::registry;
-use types::{RelayChain::*, Parachain};
+use types::{Parachain, RelayChain::*};
 
 mod mock;
-use mock::{MockEnvironment, mock_para};
+use mock::{mock_para, MockEnvironment};
 
 #[test]
 fn getting_registry_works() {
