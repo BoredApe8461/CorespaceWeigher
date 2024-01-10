@@ -33,7 +33,9 @@ fn getting_registry_works() {
 		let response = client.get("/registry").dispatch();
 		assert_eq!(response.status(), Status::Ok);
 
-		let registry = parse_ok_response(response);
+		let mut registry = parse_ok_response(response);
+		registry.sort_by_key(|p| p.para_id);
+
 		assert_eq!(registry, vec![mock_para(Polkadot, 2000), mock_para(Polkadot, 2005)]);
 	});
 }

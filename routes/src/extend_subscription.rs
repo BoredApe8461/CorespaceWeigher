@@ -22,54 +22,50 @@ use shared::{
 	payment::validate_registration_payment,
 	registry::{registered_para, registered_paras, update_registry},
 };
-use types::Parachain;
+use types::{ParaId, RelayChain};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct RegistrationData {
-	/// The parachain getting registered.
-	pub para: Parachain,
+pub struct ExtendSubscriptionData {
+	/// The parachain which is getting its subscription extended.
+	pub para: (RelayChain, ParaId),
 	/// The block in which the payment occurred for the specific parachain.
-	///
-	/// In free mode (where payment is not required), this is ignored and can be `None`.
-	/// Otherwise, it should contain a valid block number.
-	pub payment_block_number: Option<BlockNumber>,
+	pub payment_block_number: BlockNumber,
 }
 
-/// Register a parachain for resource utilization tracking.
-#[post("/register_para", data = "<registration_data>")]
-pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<(), Error> {
-	let mut para = registration_data.para.clone();
+/// Extend the subscription of a parachain for resource utilization tracking.
+#[post("/extend-subscription", data = "<data>")]
+pub async fn extend_subscription(data: Json<ExtendSubscriptionData>) -> Result<(), Error> {
+	let (relay_chain, para_id) = data.para.clone();
 
 	log::info!(
 		target: LOG_TARGET,
-		"Attempting to register para: {}:{}",
-		para.relay_chain, para.para_id
+		"Attempting to extend subscription for para: {}:{}",
+		relay_chain, para_id
 	);
 
-	let mut paras = registered_paras();
-
-	if registered_para(para.relay_chain.clone(), para.para_id).is_some() {
-		return Err(Error::AlreadyRegistered);
-	}
+	let mut para = registered_para(relay_chain.clone(), para_id).ok_or(Error::NotRegistered)?;
 
 	if let Some(payment_info) = config().payment_info {
-		let payment_block_number =
-			registration_data.payment_block_number.ok_or(Error::PaymentRequired)?;
-
-		validate_registration_payment(para.clone(), payment_info, payment_block_number)
+		validate_registration_payment(para.clone(), payment_info, data.payment_block_number)
 			.await
 			.map_err(Error::PaymentValidationError)?;
 	}
 
-	para.last_payment_timestamp = current_timestamp();
+	let mut paras = registered_paras();
 
-	paras.push(para);
+	if let Some(para) = paras.iter_mut().find(|p| **p == para) {
+		para.last_payment_timestamp = current_timestamp();
+	} else {
+		return Err(Error::NotRegistered);
+	}
+
+	para.last_payment_timestamp = current_timestamp();
 
 	if let Err(err) = update_registry(paras) {
 		log::error!(
 			target: LOG_TARGET,
-			"Failed to register para: {:?}",
+			"Failed to extend subscription for para: {:?}",
 			err
 		);
 	}
