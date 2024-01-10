@@ -63,13 +63,12 @@ impl From<String> for Error {
 			"ConsumptionDataNotFound" => Self::ConsumptionDataNotFound,
 			"InvalidData" => Self::InvalidData,
 			"PaymentRequired" => Self::PaymentRequired,
-			// TODO: fix
-			"PaymentValidationError(PaymentError::ValidationFailed)" =>
-				Self::PaymentValidationError(PaymentError::ValidationFailed),
-			"PaymentValidationError(PaymentError::Unfinalized)" =>
-				Self::PaymentValidationError(PaymentError::Unfinalized),
-			"PaymentValidationError(PaymentError::NotFound)" =>
-				Self::PaymentValidationError(PaymentError::NotFound),
+			_ if v.starts_with("PaymentValidationError(") => {
+				let payment_error =
+					v.trim_start_matches("PaymentValidationError(").trim_end_matches(')').trim();
+
+				Error::PaymentValidationError(PaymentError::from(payment_error.to_string()))
+			},
 			_ => panic!("UnknownError"),
 		}
 	}

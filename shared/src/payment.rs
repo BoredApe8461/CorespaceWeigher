@@ -47,6 +47,17 @@ pub enum PaymentError {
 	NotFound,
 }
 
+impl From<String> for PaymentError {
+	fn from(v: String) -> Self {
+		match v.as_str() {
+			"ValidationFailed" => Self::ValidationFailed,
+			"Unfinalized" => Self::Unfinalized,
+			"NotFound" => Self::NotFound,
+			_ => panic!("UnknownError"),
+		}
+	}
+}
+
 pub async fn validate_registration_payment(
 	para: Parachain,
 	payment_info: PaymentInfo,
