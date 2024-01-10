@@ -13,26 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{
-	register::polkadot::runtime_types::{
-		frame_system::pallet::Call as SystemCall, pallet_balances::pallet::Call as BalancesCall,
-		pallet_utility::pallet::Call as UtilityCall,
-	},
-	*,
-};
-use parity_scale_codec::Encode;
+
 use polkadot_core_primitives::BlockNumber;
 use rocket::{post, serde::json::Json};
 use shared::{
 	config::{config, PaymentInfo},
 	current_timestamp,
 	registry::{registered_para, registered_paras, update_registry},
-};
-use subxt::{
-	backend::rpc::{rpc_params, RpcClient},
-	blocks::Block,
-	utils::H256,
-	OnlineClient, PolkadotConfig,
 };
 use types::{ParaId, RelayChain};
 

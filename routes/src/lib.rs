@@ -13,16 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
+//! Web API for interacting with the Consumption Tracker service.
+//!
+//! This API exposes the following endpoints:
+//! - `/consumption`: Used to query consumption data associated with a parachain.
+//! - `/register`: Used to register a parachain for consumption tracking.
+//! - `/registry`: Used for querying all the registered parachains.
+
 use rocket::{http::Status, response::Responder, Request, Response};
 use serde::{Deserialize, Serialize};
+use shared::payment::PaymentError;
 
 const LOG_TARGET: &str = "server";
-
-/// Web API for interacting with the Consumption Tracker service.
-///
-/// This API exposes two main endpoints:
-/// - `/consumption`: Used to query consumption data associated with a parachain.
-/// - `/register`: Used to register a parachain for consumption tracking.
 
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 pub enum Error {
@@ -39,12 +41,8 @@ pub enum Error {
 	InvalidData,
 	/// The caller tried to register a parachain without payment.
 	PaymentRequired,
-	/// Failed to validate they payment.
-	PaymentValidationFailed,
-	/// The receipt is not referencing a finalized block.
-	UnfinalizedPayment,
-	/// The payment was not found in the specified block.
-	PaymentNotFound,
+	/// An error occured when trying to validate the payment.
+	PaymentValidationError(PaymentError),
 }
 
 impl<'r> Responder<'r, 'static> for Error {
@@ -65,15 +63,19 @@ impl From<String> for Error {
 			"ConsumptionDataNotFound" => Self::ConsumptionDataNotFound,
 			"InvalidData" => Self::InvalidData,
 			"PaymentRequired" => Self::PaymentRequired,
-			"PaymentValidationFailed" => Self::PaymentValidationFailed,
-			"UnfinalizedPayment" => Self::UnfinalizedPayment,
-			"PaymentNotFound" => Self::PaymentNotFound,
+			// TODO: fix
+			"PaymentValidationError(PaymentError::ValidationFailed)" =>
+				Self::PaymentValidationError(PaymentError::ValidationFailed),
+			"PaymentValidationError(PaymentError::Unfinalized)" =>
+				Self::PaymentValidationError(PaymentError::Unfinalized),
+			"PaymentValidationError(PaymentError::NotFound)" =>
+				Self::PaymentValidationError(PaymentError::NotFound),
 			_ => panic!("UnknownError"),
 		}
 	}
 }
 
 pub mod consumption;
-pub mod extend_subscription;
+//pub mod extend_subscription;
 pub mod register;
 pub mod registry;

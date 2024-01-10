@@ -13,32 +13,16 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{
-	register::polkadot::runtime_types::{
-		frame_system::pallet::Call as SystemCall, pallet_balances::pallet::Call as BalancesCall,
-		pallet_utility::pallet::Call as UtilityCall,
-	},
-	*,
-};
-use parity_scale_codec::Encode;
+use crate::*;
 use polkadot_core_primitives::BlockNumber;
 use rocket::{post, serde::json::Json};
 use shared::{
-	config::{config, PaymentInfo},
+	config::config,
 	current_timestamp,
 	payment::validate_registration_payment,
 	registry::{registered_para, registered_paras, update_registry},
 };
-use subxt::{
-	backend::rpc::{rpc_params, RpcClient},
-	blocks::Block,
-	utils::H256,
-	OnlineClient, PolkadotConfig,
-};
 use types::Parachain;
-
-#[subxt::subxt(runtime_metadata_path = "../artifacts/metadata.scale")]
-mod polkadot {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -73,7 +57,9 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 		let payment_block_number =
 			registration_data.payment_block_number.ok_or(Error::PaymentRequired)?;
 
-		validate_registration_payment(para.clone(), payment_info, payment_block_number).await?;
+		validate_registration_payment(para.clone(), payment_info, payment_block_number)
+			.await
+			.map_err(|e| Error::PaymentValidationError(e))?;
 	}
 
 	// Set the `last_payment_timestamp` to now. We can't trust the user to provide a valid value ;)

@@ -23,7 +23,10 @@ use routes::{
 	register::{register_para, RegistrationData},
 	Error,
 };
-use shared::registry::{registered_para, registered_paras};
+use shared::{
+	payment::PaymentError,
+	registry::{registered_para, registered_paras},
+};
 use types::RelayChain::*;
 
 mod mock;
@@ -115,7 +118,10 @@ fn providing_non_finalized_payment_block_number_fails() {
 			.body(serde_json::to_string(&registration_data).unwrap())
 			.dispatch();
 
-		assert_eq!(parse_err_response(response), Error::UnfinalizedPayment);
+		assert_eq!(
+			parse_err_response(response),
+			Error::PaymentValidationError(PaymentError::Unfinalized)
+		);
 	});
 }
 
@@ -136,7 +142,10 @@ fn payment_not_found_works() {
 			.body(serde_json::to_string(&registration_data).unwrap())
 			.dispatch();
 
-		assert_eq!(parse_err_response(response), Error::PaymentNotFound);
+		assert_eq!(
+			parse_err_response(response),
+			Error::PaymentValidationError(PaymentError::NotFound)
+		);
 	});
 }
 
