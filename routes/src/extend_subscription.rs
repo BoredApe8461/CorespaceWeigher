@@ -34,7 +34,7 @@ pub struct ExtendSubscriptionData {
 }
 
 /// Extend the subscription of a parachain for resource utilization tracking.
-#[post("/extend_subscription", data = "<data>")]
+#[post("/extend-subscription", data = "<data>")]
 pub async fn extend_subscription(data: Json<ExtendSubscriptionData>) -> Result<(), Error> {
 	let (relay_chain, para_id) = data.para.clone();
 

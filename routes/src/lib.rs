@@ -19,6 +19,7 @@
 //! - `/consumption`: Used to query consumption data associated with a parachain.
 //! - `/register`: Used to register a parachain for consumption tracking.
 //! - `/registry`: Used for querying all the registered parachains.
+//! - `/extend-subscription`: For extending the subscription of a parachain.
 
 use rocket::{http::Status, response::Responder, Request, Response};
 use serde::{Deserialize, Serialize};

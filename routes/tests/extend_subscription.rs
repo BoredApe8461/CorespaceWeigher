@@ -44,7 +44,7 @@ fn extend_subscription_works() {
 		};
 
 		let response = client
-			.post("/extend_subscription")
+			.post("/extend-subscription")
 			.header(ContentType::JSON)
 			.body(serde_json::to_string(&extend_subscription).unwrap())
 			.dispatch();
@@ -70,7 +70,7 @@ fn cannot_extend_subscription_for_unregistered() {
 		};
 
 		let response = client
-			.post("/extend_subscription")
+			.post("/extend-subscription")
 			.header(ContentType::JSON)
 			.body(serde_json::to_string(&extend_subscription).unwrap())
 			.dispatch();
@@ -92,7 +92,7 @@ fn providing_non_finalized_payment_block_number_fails() {
 		};
 
 		let response = client
-			.post("/extend_subscription")
+			.post("/extend-subscription")
 			.header(ContentType::JSON)
 			.body(serde_json::to_string(&extend_subscription).unwrap())
 			.dispatch();
@@ -118,7 +118,7 @@ fn payment_not_found_works() {
 		};
 
 		let response = client
-			.post("/extend_subscription")
+			.post("/extend-subscription")
 			.header(ContentType::JSON)
 			.body(serde_json::to_string(&extend_subscription).unwrap())
 			.dispatch();
