@@ -75,6 +75,6 @@ impl From<String> for Error {
 }
 
 pub mod consumption;
-//pub mod extend_subscription;
+pub mod extend_subscription;
 pub mod register;
 pub mod registry;

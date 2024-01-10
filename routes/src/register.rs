@@ -59,10 +59,9 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 
 		validate_registration_payment(para.clone(), payment_info, payment_block_number)
 			.await
-			.map_err(|e| Error::PaymentValidationError(e))?;
+			.map_err(Error::PaymentValidationError)?;
 	}
 
-	// Set the `last_payment_timestamp` to now. We can't trust the user to provide a valid value ;)
 	para.last_payment_timestamp = current_timestamp();
 
 	paras.push(para);

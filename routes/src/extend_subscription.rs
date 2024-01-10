@@ -13,12 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-
+use crate::*;
 use polkadot_core_primitives::BlockNumber;
 use rocket::{post, serde::json::Json};
 use shared::{
-	config::{config, PaymentInfo},
+	config::config,
 	current_timestamp,
+	payment::validate_registration_payment,
 	registry::{registered_para, registered_paras, update_registry},
 };
 use types::{ParaId, RelayChain};
@@ -45,8 +46,26 @@ pub async fn extend_subscription(data: Json<ExtendSubscriptionData>) -> Result<(
 
 	let mut paras = registered_paras();
 
-	if registered_para(relay_chain.clone(), para_id).is_some() {
+	let Some(mut para) = registered_para(relay_chain.clone(), para_id) else {
 		return Err(Error::NotRegistered);
+	};
+
+	if let Some(payment_info) = config().payment_info {
+		validate_registration_payment(para.clone(), payment_info, data.payment_block_number)
+			.await
+			.map_err(|e| Error::PaymentValidationError(e))?;
+	}
+
+	para.last_payment_timestamp = current_timestamp();
+
+	paras.push(para);
+
+	if let Err(err) = update_registry(paras) {
+		log::error!(
+			target: LOG_TARGET,
+			"Failed to extend subscription for para: {:?}",
+			err
+		);
 	}
 
 	Ok(())

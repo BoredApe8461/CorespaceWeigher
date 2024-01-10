@@ -3332,7 +3332,6 @@ version = "0.1.0"
 dependencies = [
  "log",
  "maplit",
- "parity-scale-codec",
  "polkadot-core-primitives",
  "rocket",
  "rocket_cors",
@@ -3340,8 +3339,6 @@ dependencies = [
  "serde",
  "serde_json",
  "shared",
- "sp-runtime",
- "subxt",
  "types",
 ]
 
