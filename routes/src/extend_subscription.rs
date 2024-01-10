@@ -44,21 +44,23 @@ pub async fn extend_subscription(data: Json<ExtendSubscriptionData>) -> Result<(
 		relay_chain, para_id
 	);
 
-	let mut paras = registered_paras();
-
-	let Some(mut para) = registered_para(relay_chain.clone(), para_id) else {
-		return Err(Error::NotRegistered);
-	};
+	let mut para = registered_para(relay_chain.clone(), para_id).ok_or(Error::NotRegistered)?;
 
 	if let Some(payment_info) = config().payment_info {
 		validate_registration_payment(para.clone(), payment_info, data.payment_block_number)
 			.await
-			.map_err(|e| Error::PaymentValidationError(e))?;
+			.map_err(Error::PaymentValidationError)?;
+	}
+
+	let mut paras = registered_paras();
+
+	if let Some(para) = paras.iter_mut().find(|p| **p == para) {
+		para.last_payment_timestamp = current_timestamp();
+	} else {
+		return Err(Error::NotRegistered);
 	}
 
 	para.last_payment_timestamp = current_timestamp();
-
-	paras.push(para);
 
 	if let Err(err) = update_registry(paras) {
 		log::error!(

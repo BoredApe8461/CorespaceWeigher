@@ -52,14 +52,14 @@ fn register_works() {
 
 		assert_eq!(response.status(), Status::Ok);
 
-		let response_para = registered_para(Polkadot, 2001).unwrap();
+		let registered = registered_para(Polkadot, 2001).unwrap();
 
 		// Set the `last_payment_timestamp` to the proper value.
-		para.last_payment_timestamp = response_para.last_payment_timestamp;
+		para.last_payment_timestamp = registered.last_payment_timestamp;
 
 		// Ensure the parachain is properly registered:
 		assert_eq!(registered_paras(), vec![para.clone()]);
-		assert_eq!(response_para, para);
+		assert_eq!(registered, para);
 	});
 }
 
