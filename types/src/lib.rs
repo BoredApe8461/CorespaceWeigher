@@ -71,9 +71,7 @@ pub struct Parachain {
 	/// Name of the parachain.
 	pub name: String,
 	/// The rpc url endpoint from where we can query the weight consumption.
-	//
-	// TODO: instead of having only one rpc url specified there should be a fallback.
-	pub rpc_url: String,
+	pub rpcs: Vec<String>,
 	/// The `ParaId` of the parachain.
 	pub para_id: ParaId,
 	/// The relay chain that the parachain is using for block validation.

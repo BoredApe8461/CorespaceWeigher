@@ -20,7 +20,7 @@ use std::{
 };
 use types::{ParaId, Parachain, RelayChain};
 
-pub fn registered_paras(rpc_index: u8) -> Vec<Parachain> {
+pub fn registered_paras() -> Vec<Parachain> {
 	let mut registry = get_registry();
 	let mut content = String::new();
 
@@ -31,12 +31,8 @@ pub fn registered_paras(rpc_index: u8) -> Vec<Parachain> {
 	paras
 }
 
-pub fn registered_para(
-	relay_chain: RelayChain,
-	para_id: ParaId,
-	rpc_index: u8,
-) -> Option<Parachain> {
-	registered_paras(rpc_index)
+pub fn registered_para(relay_chain: RelayChain, para_id: ParaId) -> Option<Parachain> {
+	registered_paras()
 		.iter()
 		.find(|para| para.relay_chain == relay_chain && para.para_id == para_id)
 		.cloned()

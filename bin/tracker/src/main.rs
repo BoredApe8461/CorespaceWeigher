@@ -43,6 +43,7 @@
 
 const LOG_TARGET: &str = "tracker";
 
+use clap::Parser;
 use shared::{consumption::write_consumption, registry::registered_paras, round_to};
 use subxt::{blocks::Block, utils::H256, OnlineClient, PolkadotConfig};
 use types::{Parachain, Timestamp, WeightConsumption};
@@ -60,9 +61,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	// Asynchronously subscribes to follow the latest finalized block of each parachain
 	// and continuously fetches the weight consumption.
-	let tasks: Vec<_> = registered_paras(args.rpc_index)
+	let tasks: Vec<_> = registered_paras()
 		.into_iter()
-		.map(|para| tokio::spawn(async move { track_weight_consumption(para).await }))
+		.map(|para| {
+			tokio::spawn(async move { track_weight_consumption(para, args.rpc_index).await })
+		})
 		.collect();
 
 	for task in tasks {
@@ -72,8 +75,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	Ok(())
 }
 
-async fn track_weight_consumption(para: Parachain) {
-	if let Ok(api) = OnlineClient::<PolkadotConfig>::from_url(&para.rpc_url).await {
+async fn track_weight_consumption(para: Parachain, rpc_index: usize) {
+	let Some(rpc) = para.rpcs.get(rpc_index) else {
+		log::error!(
+			target: LOG_TARGET,
+			"Parachain {}-{} doesn't have an rpc with index: {}",
+			para.relay_chain, para.para_id, rpc_index,
+		);
+		return;
+	};
+
+	if let Ok(api) = OnlineClient::<PolkadotConfig>::from_url(rpc).await {
 		if let Err(err) = track_blocks(api, para).await {
 			log::error!(
 				target: LOG_TARGET,

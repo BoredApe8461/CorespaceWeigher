@@ -17,12 +17,13 @@ use crate::*;
 use polkadot_core_primitives::BlockNumber;
 use rocket::{post, serde::json::Json};
 use shared::{
+	chaindata,
 	config::config,
 	current_timestamp,
 	payment::validate_registration_payment,
 	registry::{registered_para, registered_paras, update_registry},
 };
-use types::Parachain;
+use types::{ParaId, RelayChain};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -39,19 +40,22 @@ pub struct RegistrationData {
 /// Register a parachain for resource utilization tracking.
 #[post("/register_para", data = "<registration_data>")]
 pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<(), Error> {
-	let mut para = registration_data.para.clone();
+	let (relay_chain, para_id) = registration_data.para.clone();
 
 	log::info!(
 		target: LOG_TARGET,
 		"Attempting to register para: {}:{}",
-		para.relay_chain, para.para_id
+		relay_chain, para_id
 	);
 
 	let mut paras = registered_paras();
 
-	if registered_para(para.relay_chain.clone(), para.para_id).is_some() {
+	if registered_para(relay_chain.clone(), para_id).is_some() {
 		return Err(Error::AlreadyRegistered);
 	}
+
+	// TODO: don't unwrap
+	let mut para = chaindata::get_para(relay_chain, para_id).unwrap();
 
 	if let Some(payment_info) = config().payment_info {
 		let payment_block_number =

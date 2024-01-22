@@ -15,7 +15,7 @@
 use crate::config::config;
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::Read};
-use types::{ParaId, RelayChain};
+use types::{ParaId, Parachain, RelayChain};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Relay {
@@ -42,11 +42,7 @@ pub enum ChaindataError {
 }
 
 /// Get the rpcs of a parachain.
-pub fn get_para_rpc(
-	relay: RelayChain,
-	para_id: ParaId,
-	rpc_index: u8,
-) -> Result<String, ChaindataError> {
+pub fn get_para(relay: RelayChain, para_id: ParaId) -> Result<Parachain, ChaindataError> {
 	let mut file = File::open(config().chaindata).expect("Chaindata not found");
 	let mut content = String::new();
 
@@ -58,12 +54,17 @@ pub fn get_para_rpc(
 		.position(|para| para.para_id == para_id && para.relay == Relay { id: relay.clone() })
 		.ok_or(ChaindataError::ParaNotFound)?;
 
-	let rpc = chaindata
-		.get(index)
-		.expect("We just found the index; qed")
-		.rpcs
-		.get(rpc_index as usize)
-		.ok_or(ChaindataError::RpcIndexOutOfBound)?;
+	let para_chaindata = chaindata.get(index).expect("We just found the index; qed");
 
-	Ok(rpc.url.clone())
+	let rpcs: Vec<String> = para_chaindata.rpcs.clone().into_iter().map(|rpc| rpc.url).collect();
+
+	let para = Parachain {
+		relay_chain: relay,
+		para_id,
+		name: para_chaindata.name.clone(),
+		rpcs,
+		last_payment_timestamp: Default::default(),
+	};
+
+	Ok(para)
 }
