@@ -1,5 +1,6 @@
 output_directory = "mock-out/"
 registry = "mock-parachains.json"
+chaindata = "../chaindata.json"
 free_mode = true
 
 [payment_info]

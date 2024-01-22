@@ -19,11 +19,11 @@ use rocket::{
 	routes,
 };
 use routes::{consumption::consumption, Error};
-use shared::{registry::update_registry, reset_mock_environment};
+use shared::{chaindata::get_para, registry::update_registry, reset_mock_environment};
 use types::{RelayChain::*, WeightConsumption};
 
 mod mock;
-use mock::{mock_consumption, mock_para, MockEnvironment};
+use mock::{mock_consumption, MockEnvironment};
 
 #[test]
 fn getting_all_consumption_data_works() {
@@ -31,7 +31,7 @@ fn getting_all_consumption_data_works() {
 		let rocket = rocket::build().mount("/", routes![consumption]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2000);
+		let para = get_para(Polkadot, 2000).unwrap();
 		let response = client.get("/consumption/polkadot/2000").dispatch();
 		assert_eq!(response.status(), Status::Ok);
 
@@ -63,7 +63,7 @@ fn consumption_data_not_found_handled() {
 	let client = Client::tracked(rocket).expect("valid rocket instance");
 
 	// Register a parachain without storing any consumption data.
-	assert!(update_registry(vec![mock_para(Polkadot, 2000)]).is_ok());
+	assert!(update_registry(vec![get_para(Polkadot, 2000).unwrap()]).is_ok());
 
 	let response = client.get("/consumption/polkadot/2000").dispatch();
 	assert_eq!(response.status(), Status::InternalServerError);
@@ -80,7 +80,7 @@ fn pagination_works() {
 		let rocket = rocket::build().mount("/", routes![consumption]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2000);
+		let para = get_para(Polkadot, 2000).unwrap();
 		let mock_data = mock_consumption().get(&para).unwrap().clone();
 
 		// CASE 1: Limit response size by setting page size
@@ -125,7 +125,7 @@ fn timestamp_based_filtering_works() {
 		let rocket = rocket::build().mount("/", routes![consumption]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2000);
+		let para = get_para(Polkadot, 2000).unwrap();
 		let mock_data = mock_consumption().get(&para).unwrap().clone();
 
 		// CASE 1: setting the starting timestamp filters out the data.
@@ -183,7 +183,7 @@ fn pagination_and_timestamp_filtering_works() {
 		let rocket = rocket::build().mount("/", routes![consumption]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2000);
+		let para = get_para(Polkadot, 2000).unwrap();
 		let mock_data = mock_consumption().get(&para).unwrap().clone();
 
 		// Combined Case: Filter by timestamp and paginate

@@ -19,10 +19,11 @@ use rocket::{
 	routes,
 };
 use routes::registry::registry;
+use shared::chaindata::get_para;
 use types::{Parachain, RelayChain::*};
 
 mod mock;
-use mock::{mock_para, MockEnvironment};
+use mock::MockEnvironment;
 
 #[test]
 fn getting_registry_works() {
@@ -36,7 +37,10 @@ fn getting_registry_works() {
 		let mut registry = parse_ok_response(response);
 		registry.sort_by_key(|p| p.para_id);
 
-		assert_eq!(registry, vec![mock_para(Polkadot, 2000), mock_para(Polkadot, 2005)]);
+		assert_eq!(
+			registry,
+			vec![get_para(Polkadot, 2000).unwrap(), get_para(Polkadot, 2004).unwrap()]
+		);
 	});
 }
 
