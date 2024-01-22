@@ -36,14 +36,22 @@ struct ChainData {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
-pub enum ChaindataError {
+pub enum ChainDataError {
 	ParaNotFound,
-	RpcIndexOutOfBound,
+}
+
+impl From<String> for ChainDataError {
+	fn from(v: String) -> Self {
+		match v.as_str() {
+			"ParaNotFound" => Self::ParaNotFound,
+			_ => panic!("UnknownError"),
+		}
+	}
 }
 
 /// Get the rpcs of a parachain.
-pub fn get_para(relay: RelayChain, para_id: ParaId) -> Result<Parachain, ChaindataError> {
-	let mut file = File::open(config().chaindata).expect("Chaindata not found");
+pub fn get_para(relay: RelayChain, para_id: ParaId) -> Result<Parachain, ChainDataError> {
+	let mut file = File::open(config().chaindata).expect("ChainData not found");
 	let mut content = String::new();
 
 	file.read_to_string(&mut content).expect("Failed to load chaindata");
@@ -52,7 +60,7 @@ pub fn get_para(relay: RelayChain, para_id: ParaId) -> Result<Parachain, Chainda
 	let index = chaindata
 		.iter()
 		.position(|para| para.para_id == para_id && para.relay == Relay { id: relay.clone() })
-		.ok_or(ChaindataError::ParaNotFound)?;
+		.ok_or(ChainDataError::ParaNotFound)?;
 
 	let para_chaindata = chaindata.get(index).expect("We just found the index; qed");
 
