@@ -3,6 +3,7 @@
     "name": "Acala",
     "rpc_url": "wss://acala-rpc.dwellir.com",
     "para_id": 2000,
-    "relay_chain": "Polkadot"
+    "relay_chain": "Polkadot",
+    "last_payment_timestamp": 0
   }
 ]

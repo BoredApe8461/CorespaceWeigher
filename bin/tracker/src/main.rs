@@ -47,6 +47,8 @@ use shared::{consumption::write_consumption, registry::registered_paras, round_t
 use subxt::{blocks::Block, utils::H256, OnlineClient, PolkadotConfig};
 use types::{Parachain, Timestamp, WeightConsumption};
 
+mod cli;
+
 #[subxt::subxt(runtime_metadata_path = "../../artifacts/metadata.scale")]
 mod polkadot {}
 
@@ -54,9 +56,11 @@ mod polkadot {}
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	env_logger::init();
 
+	let args = cli::Args::parse();
+
 	// Asynchronously subscribes to follow the latest finalized block of each parachain
 	// and continuously fetches the weight consumption.
-	let tasks: Vec<_> = registered_paras()
+	let tasks: Vec<_> = registered_paras(args.rpc_index)
 		.into_iter()
 		.map(|para| tokio::spawn(async move { track_weight_consumption(para).await }))
 		.collect();

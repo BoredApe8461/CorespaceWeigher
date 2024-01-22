@@ -28,7 +28,7 @@ use types::Parachain;
 #[serde(crate = "rocket::serde")]
 pub struct RegistrationData {
 	/// The parachain getting registered.
-	pub para: Parachain,
+	pub para: (RelayChain, ParaId),
 	/// The block in which the payment occurred for the specific parachain.
 	///
 	/// In free mode (where payment is not required), this is ignored and can be `None`.

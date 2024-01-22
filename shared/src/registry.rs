@@ -20,19 +20,23 @@ use std::{
 };
 use types::{ParaId, Parachain, RelayChain};
 
-pub fn registered_paras() -> Vec<Parachain> {
+pub fn registered_paras(rpc_index: u8) -> Vec<Parachain> {
 	let mut registry = get_registry();
 	let mut content = String::new();
 
-	// If this fails it simply means that the registered parachains is still empty.
+	// If this fails it simply means that the registry is empty.
 	let _ = registry.read_to_string(&mut content);
 	let paras: Vec<Parachain> = serde_json::from_str(&content).expect("Failed to serialize");
 
 	paras
 }
 
-pub fn registered_para(relay_chain: RelayChain, para_id: ParaId) -> Option<Parachain> {
-	registered_paras()
+pub fn registered_para(
+	relay_chain: RelayChain,
+	para_id: ParaId,
+	rpc_index: u8,
+) -> Option<Parachain> {
+	registered_paras(rpc_index)
 		.iter()
 		.find(|para| para.relay_chain == relay_chain && para.para_id == para_id)
 		.cloned()

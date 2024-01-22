@@ -36,6 +36,7 @@ pub struct PaymentInfo {
 pub struct Config {
 	pub output_directory: String,
 	pub registry: String,
+	pub chaindata: String,
 	pub payment_info: Option<PaymentInfo>,
 }
 

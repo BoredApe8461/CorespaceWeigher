@@ -16,11 +16,13 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 use types::Timestamp;
 
+pub mod chaindata;
 pub mod config;
 pub mod consumption;
 pub mod payment;
 pub mod registry;
 
+#[cfg(feature = "test-utils")]
 use crate::config::config;
 
 const LOG_TARGET: &str = "shared";
