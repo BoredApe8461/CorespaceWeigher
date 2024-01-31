@@ -1,9 +1,14 @@
 [
   {
     "name": "Acala",
-    "rpc_url": "wss://acala-rpc.dwellir.com",
+    "rpcs": [
+      "wss://acala-rpc.dwellir.com",
+      "wss://acala-rpc-0.aca-api.network",
+      "wss://acala-rpc-1.aca-api.network",
+      "wss://acala-rpc-3.aca-api.network/ws"
+    ],
     "para_id": 2000,
     "relay_chain": "Polkadot",
-    "last_payment_timestamp": 0
+    "last_payment_timestamp": 1706728108
   }
 ]

@@ -1,4 +1,4 @@
-output_directory = "out"
+output_directory = "out/out"
 registry = "registry.json"
 chaindata = "chaindata.json"
 
