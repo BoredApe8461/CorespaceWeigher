@@ -54,8 +54,7 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 		return Err(Error::AlreadyRegistered);
 	}
 
-	// TODO: don't unwrap
-	let mut para = chaindata::get_para(relay_chain, para_id).unwrap();
+	let mut para = chaindata::get_para(relay_chain, para_id).map_err(Error::ChainDataError)?;
 
 	if let Some(payment_info) = config().payment_info {
 		let payment_block_number =

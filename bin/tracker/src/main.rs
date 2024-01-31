@@ -34,7 +34,7 @@
 //! The data stored is the 2D weight consumption per each dispatch class.
 //! The data is stored in the CSV file within the following sequence:
 //!
-//! | block_number | timestamp             | normal_dispatch_ref_time | operational_dispatch_ref_time | mandatory_dispatch_ref_time | normal_proof_size | operational_proof_size | mandatory_proof_size |
+//! | block_number | timestamp             | normal_dispatch_ref_time  | operational_dispatch_ref_time | mandatory_dispatch_ref_time | normal_proof_size | operational_proof_size  | mandatory_proof_size  |
 //! |--------------|-----------------------|---------------------------|-------------------------------|-----------------------------|-------------------|-------------------------|-----------------------|
 //! | ...          | ...                   | ...                       | ...                           | ...                         | ...               | ...                     | ...                   |
 //!
@@ -85,21 +85,32 @@ async fn track_weight_consumption(para: Parachain, rpc_index: usize) {
 		return;
 	};
 
-	if let Ok(api) = OnlineClient::<PolkadotConfig>::from_url(rpc).await {
-		if let Err(err) = track_blocks(api, para).await {
+	log::info!("Starting to track consumption for: {}-{}", para.relay_chain, para.para_id);
+	let result = OnlineClient::<PolkadotConfig>::from_url(rpc).await;
+
+	if let Ok(api) = result {
+		if let Err(err) = track_blocks(api, para, rpc_index).await {
 			log::error!(
 				target: LOG_TARGET,
 				"Failed to track new block: {:?}",
 				err
 			);
 		}
+	} else {
+		log::error!(
+			target: LOG_TARGET,
+			"Failed to create online client: {:?}",
+			result
+		);
 	}
 }
 
 async fn track_blocks(
 	api: OnlineClient<PolkadotConfig>,
 	para: Parachain,
+	rpc_index: usize,
 ) -> Result<(), Box<dyn std::error::Error>> {
+	log::info!("Subsciribing to finalized blocks for: {}", para.para_id);
 	let mut blocks_sub = api
 		.blocks()
 		.subscribe_finalized()
@@ -108,7 +119,7 @@ async fn track_blocks(
 
 	// Wait for new finalized blocks, then fetch and output the weight consumption accordingly.
 	while let Some(Ok(block)) = blocks_sub.next().await {
-		note_new_block(api.clone(), para.clone(), block).await?;
+		note_new_block(api.clone(), para.clone(), rpc_index, block).await?;
 	}
 
 	Ok(())
@@ -117,6 +128,7 @@ async fn track_blocks(
 async fn note_new_block(
 	api: OnlineClient<PolkadotConfig>,
 	para: Parachain,
+	rpc_index: usize,
 	block: Block<PolkadotConfig, OnlineClient<PolkadotConfig>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
 	let block_number = block.header().number;
@@ -124,7 +136,7 @@ async fn note_new_block(
 	let timestamp = timestamp_at(api.clone(), block.hash()).await?;
 	let consumption = weight_consumption(api, block_number, timestamp).await?;
 
-	write_consumption(para, consumption)?;
+	write_consumption(para, consumption, rpc_index)?;
 
 	Ok(())
 }

@@ -23,7 +23,7 @@ pub mod payment;
 pub mod registry;
 
 #[cfg(feature = "test-utils")]
-use crate::config::config;
+use crate::config::output_directory;
 
 const LOG_TARGET: &str = "shared";
 
@@ -43,17 +43,14 @@ pub fn current_timestamp() -> Timestamp {
 // There isn't a good reason to use this other than for testing.
 #[cfg(feature = "test-utils")]
 pub fn reset_mock_environment() {
-	let config = config();
-
 	// Reset the registered paras file:
 	let _registry = registry::init_registry();
 
+	let output_path = output_directory(0);
 	// Remove the output files:
-	let _ = std::fs::create_dir(config.output_directory.clone());
+	let _ = std::fs::create_dir(output_path.clone());
 
-	for entry in
-		std::fs::read_dir(config.output_directory).expect("Failed to read output directory")
-	{
+	for entry in std::fs::read_dir(output_path).expect("Failed to read output directory") {
 		let entry = entry.expect("Failed to ready entry");
 		let path = entry.path();
 		if path.is_file() {

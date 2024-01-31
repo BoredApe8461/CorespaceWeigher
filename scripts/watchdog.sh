@@ -1,6 +1,6 @@
 #!/bin/bash
 
-FILE_TO_WATCH="nohup.out"
+FILE_TO_WATCH="logs/tracker-logs.out"
 
 WS_CONNECTION_ERROR="Failed to read message: Networking or low-level protocol error: WebSocket connection error: connection closed"
 TRACKER="./target/release/tracker"
@@ -17,7 +17,7 @@ restart_tracker() {
         done
 
         # start the tracker again
-        nohup sh -c 'RUST_LOG=INFO ./target/release/tracker' &
+        nohup sh -c 'RUST_LOG=INFO ./target/release/tracker' > $FILE_TO_WATCH 2>&1 &
     fi
 }
 

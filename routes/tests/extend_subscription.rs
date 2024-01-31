@@ -63,7 +63,6 @@ fn cannot_extend_subscription_for_unregistered() {
 		let rocket = rocket::build().mount("/", routes![extend_subscription]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = get_para(Polkadot, 2006).unwrap();
 		let extend_subscription = ExtendSubscriptionData {
 			para: (Polkadot, 2006),
 			payment_block_number: PARA_2000_PAYMENT,

@@ -600,6 +600,21 @@
     ]
   },
   {
+    "name": "Polkadot",
+    "para_id": 0,
+    "relay": {
+      "id": "polkadot"
+    },
+    "rpcs": [
+      {
+        "url": "wss://polkadot.api.onfinality.io/public-ws"
+      },
+      {
+        "url": "wss://rpc-polkadot.luckyfriday.io"
+      }
+    ]
+  },
+  {
     "name": "Ajuna",
     "para_id": 2051,
     "relay": {

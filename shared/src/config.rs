@@ -44,3 +44,7 @@ pub fn config() -> Config {
 	let config_str = std::fs::read_to_string(CONFIG_FILE).expect("Failed to read config file");
 	toml::from_str(&config_str).expect("Failed to parse config file")
 }
+
+pub fn output_directory(rpc_index: usize) -> String {
+	format!("{}-{}", config().output_directory, rpc_index)
+}
