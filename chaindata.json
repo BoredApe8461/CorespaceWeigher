@@ -44,6 +44,9 @@
     "rpcs": [
       {
         "url": "wss://fullnode.altair.centrifuge.io"
+      },
+      {
+        "url": "wss://altair.api.onfinality.io/public-ws"
       }
     ]
   },
@@ -95,6 +98,9 @@
     "rpcs": [
       {
         "url": "wss://kusama.api.integritee.network"
+      },
+      {
+        "url": "wss://integritee-kusama.api.onfinality.io/public-ws"
       }
     ]
   },
@@ -872,6 +878,9 @@
     "rpcs": [
       {
         "url": "wss://eden-rpc.dwellir.com"
+      },
+      {
+        "url": "wss://nodle-parachain.api.onfinality.io/public-ws"
       }
     ]
   },
@@ -1067,6 +1076,9 @@
     "rpcs": [
       {
         "url": "wss://para.subsocial.network"
+      },
+      {
+        "url": "wss://subsocial-rpc.dwellir.com"
       }
     ]
   },
