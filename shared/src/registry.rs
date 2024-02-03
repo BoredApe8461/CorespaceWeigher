@@ -55,7 +55,7 @@ pub fn update_registry(paras: Vec<Parachain>) -> Result<(), String> {
 }
 
 fn get_registry() -> File {
-	match OpenOptions::new().read(true).write(true).create(true).open(config().registry) {
+	match OpenOptions::new().read(true).write(true).open(config().registry) {
 		Ok(file) => file,
 		Err(_) => init_registry(),
 	}
