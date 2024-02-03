@@ -23,7 +23,7 @@
 
 use rocket::{http::Status, response::Responder, Request, Response};
 use serde::{Deserialize, Serialize};
-use shared::payment::PaymentError;
+use shared::{chaindata::ChainDataError, payment::PaymentError};
 
 const LOG_TARGET: &str = "server";
 
@@ -42,6 +42,8 @@ pub enum Error {
 	InvalidData,
 	/// The caller tried to register a parachain without payment.
 	PaymentRequired,
+	// An error occured when trying to read parachain's chaindata.
+	ChainDataError(ChainDataError),
 	/// An error occured when trying to validate the payment.
 	PaymentValidationError(PaymentError),
 }
@@ -64,6 +66,12 @@ impl From<String> for Error {
 			"ConsumptionDataNotFound" => Self::ConsumptionDataNotFound,
 			"InvalidData" => Self::InvalidData,
 			"PaymentRequired" => Self::PaymentRequired,
+			_ if v.starts_with("ChainDataError(") => {
+				let chaindata_error =
+					v.trim_start_matches("ChainDataError(").trim_end_matches(')').trim();
+
+				Error::ChainDataError(ChainDataError::from(chaindata_error.to_string()))
+			},
 			_ if v.starts_with("PaymentValidationError(") => {
 				let payment_error =
 					v.trim_start_matches("PaymentValidationError(").trim_end_matches(')').trim();

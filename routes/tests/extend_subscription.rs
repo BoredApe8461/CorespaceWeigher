@@ -23,11 +23,11 @@ use routes::{
 	extend_subscription::{extend_subscription, ExtendSubscriptionData},
 	Error,
 };
-use shared::{payment::PaymentError, registry::registered_para};
+use shared::{chaindata::get_para, payment::PaymentError, registry::registered_para};
 use types::RelayChain::*;
 
 mod mock;
-use mock::{mock_para, MockEnvironment};
+use mock::MockEnvironment;
 
 const PARA_2000_PAYMENT: BlockNumber = 8624975;
 
@@ -37,7 +37,7 @@ fn extend_subscription_works() {
 		let rocket = rocket::build().mount("/", routes![extend_subscription]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2000);
+		let para = get_para(Polkadot, 2000).unwrap();
 		let extend_subscription = ExtendSubscriptionData {
 			para: (para.relay_chain.clone(), para.para_id),
 			payment_block_number: PARA_2000_PAYMENT,
@@ -63,9 +63,8 @@ fn cannot_extend_subscription_for_unregistered() {
 		let rocket = rocket::build().mount("/", routes![extend_subscription]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2001);
 		let extend_subscription = ExtendSubscriptionData {
-			para: (para.relay_chain.clone(), para.para_id),
+			para: (Polkadot, 2006),
 			payment_block_number: PARA_2000_PAYMENT,
 		};
 
@@ -85,7 +84,7 @@ fn providing_non_finalized_payment_block_number_fails() {
 		let rocket = rocket::build().mount("/", routes![extend_subscription]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2000);
+		let para = get_para(Polkadot, 2000).unwrap();
 		let extend_subscription = ExtendSubscriptionData {
 			para: (para.relay_chain.clone(), para.para_id),
 			payment_block_number: 99999999,
@@ -110,8 +109,8 @@ fn payment_not_found_works() {
 		let rocket = rocket::build().mount("/", routes![extend_subscription]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2005);
-		// We are extending the subscription for para 2005, but the payment is for para 2000.
+		let para = get_para(Polkadot, 2004).unwrap();
+		// We are extending the subscription for para 2004, but the payment is for para 2000.
 		let extend_subscription = ExtendSubscriptionData {
 			para: (para.relay_chain.clone(), para.para_id),
 			payment_block_number: PARA_2000_PAYMENT,

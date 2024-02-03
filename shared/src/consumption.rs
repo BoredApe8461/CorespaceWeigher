@@ -13,13 +13,17 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{config::config, LOG_TARGET};
+use crate::{config::output_directory, LOG_TARGET};
 use csv::{ReaderBuilder, WriterBuilder};
 use std::fs::{File, OpenOptions};
 use types::{Parachain, WeightConsumption};
 
-pub fn get_consumption(para: Parachain) -> Result<Vec<WeightConsumption>, &'static str> {
-	let file = File::open(output_file_path(para)).map_err(|_| "Consumption data not found")?;
+pub fn get_consumption(
+	para: Parachain,
+	rpc_index: usize,
+) -> Result<Vec<WeightConsumption>, &'static str> {
+	let file =
+		File::open(output_file_path(para, rpc_index)).map_err(|_| "Consumption data not found")?;
 	let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
 
 	let consumption: Vec<WeightConsumption> = rdr
@@ -33,6 +37,7 @@ pub fn get_consumption(para: Parachain) -> Result<Vec<WeightConsumption>, &'stat
 pub fn write_consumption(
 	para: Parachain,
 	consumption: WeightConsumption,
+	rpc_index: usize,
 ) -> Result<(), std::io::Error> {
 	log::info!(
 		target: LOG_TARGET,
@@ -40,7 +45,7 @@ pub fn write_consumption(
 		para.relay_chain, para.para_id, consumption.block_number
 	);
 
-	let output_file_path = output_file_path(para);
+	let output_file_path = output_file_path(para, rpc_index);
 	let file = OpenOptions::new().create(true).append(true).open(output_file_path)?;
 
 	let mut wtr = WriterBuilder::new().from_writer(file);
@@ -64,6 +69,6 @@ pub fn write_consumption(
 	wtr.flush()
 }
 
-fn output_file_path(para: Parachain) -> String {
-	format!("{}/{}-{}.csv", config().output_directory, para.relay_chain, para.para_id)
+fn output_file_path(para: Parachain, rpc_index: usize) -> String {
+	format!("{}/{}-{}.csv", output_directory(rpc_index), para.relay_chain, para.para_id)
 }

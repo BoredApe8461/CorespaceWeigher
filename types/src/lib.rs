@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
 
 /// Timestamp based on the 1 Jan 1970 UNIX base, which is persistent across node restarts and OS
@@ -25,7 +25,7 @@ pub type ParaId = u32;
 
 pub type Balance = u128;
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Hash)]
 #[serde(crate = "rocket::serde")]
 pub enum RelayChain {
 	Polkadot,
@@ -51,15 +51,27 @@ impl From<&str> for RelayChain {
 	}
 }
 
+impl<'de> Deserialize<'de> for RelayChain {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		let s = String::deserialize(deserializer)?.to_lowercase();
+		match s.as_str() {
+			"polkadot" | "Polkadot" => Ok(RelayChain::Polkadot),
+			"kusama" | "Kusama" => Ok(RelayChain::Kusama),
+			_ => Err(serde::de::Error::custom(format!("Invalid relay chain: {}", s))),
+		}
+	}
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(crate = "rocket::serde")]
 pub struct Parachain {
 	/// Name of the parachain.
 	pub name: String,
 	/// The rpc url endpoint from where we can query the weight consumption.
-	//
-	// TODO: instead of having only one rpc url specified there should be a fallback.
-	pub rpc_url: String,
+	pub rpcs: Vec<String>,
 	/// The `ParaId` of the parachain.
 	pub para_id: ParaId,
 	/// The relay chain that the parachain is using for block validation.

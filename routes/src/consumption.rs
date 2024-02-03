@@ -35,7 +35,8 @@ pub fn consumption(
 	let (page, page_size) = (page.unwrap_or_default(), page_size.unwrap_or(u32::MAX));
 	let (start, end) = (start.unwrap_or_default(), end.unwrap_or(Timestamp::MAX));
 
-	let weight_consumptions: Vec<WeightConsumption> = get_consumption(para)
+	// By default query the consumption that was collected from rpc index 0.
+	let weight_consumptions: Vec<WeightConsumption> = get_consumption(para, 0)
 		.map_err(|_| Error::ConsumptionDataNotFound)?
 		.into_iter()
 		.filter(|consumption| consumption.timestamp >= start && consumption.timestamp <= end)
