@@ -84,25 +84,31 @@ pub fn consumption(
 
 	let grouping = grouping.unwrap_or(Grouping::BlockNumber);
 
-	let grouped: HashMap<String, AggregatedData> =
-		weight_consumptions.iter().fold(HashMap::new(), |mut acc, datum| {
-			let key = get_aggregation_key(datum.clone(), grouping);
-			let entry = acc.entry(key).or_insert_with(Default::default);
-
-			entry.ref_time.normal += datum.ref_time.normal;
-			entry.ref_time.operational += datum.ref_time.operational;
-			entry.ref_time.mandatory += datum.ref_time.mandatory;
-
-			entry.proof_size.normal += datum.proof_size.normal;
-			entry.proof_size.operational += datum.proof_size.operational;
-			entry.proof_size.mandatory += datum.proof_size.mandatory;
-
-			entry.count += 1;
-
-			acc
-		});
+	let grouped: HashMap<String, AggregatedData> = group_consumption(weight_consumptions, grouping);
 
 	serde_json::to_string(&grouped).map_err(|_| Error::InvalidData)
+}
+
+pub fn group_consumption(
+	weight_consumptions: Vec<WeightConsumption>,
+	grouping: Grouping,
+) -> HashMap<String, AggregatedData> {
+	weight_consumptions.iter().fold(HashMap::new(), |mut acc, datum| {
+		let key = get_aggregation_key(datum.clone(), grouping);
+		let entry = acc.entry(key).or_insert_with(Default::default);
+
+		entry.ref_time.normal += datum.ref_time.normal;
+		entry.ref_time.operational += datum.ref_time.operational;
+		entry.ref_time.mandatory += datum.ref_time.mandatory;
+
+		entry.proof_size.normal += datum.proof_size.normal;
+		entry.proof_size.operational += datum.proof_size.operational;
+		entry.proof_size.mandatory += datum.proof_size.mandatory;
+
+		entry.count += 1;
+
+		acc
+	})
 }
 
 fn get_aggregation_key(datum: WeightConsumption, grouping: Grouping) -> String {

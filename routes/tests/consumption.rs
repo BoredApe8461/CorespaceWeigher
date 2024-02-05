@@ -18,8 +18,12 @@ use rocket::{
 	local::blocking::{Client, LocalResponse},
 	routes,
 };
-use routes::{consumption::consumption, Error};
+use routes::{
+	consumption::{consumption, group_consumption, AggregatedData, Grouping},
+	Error,
+};
 use shared::{chaindata::get_para, registry::update_registry, reset_mock_environment};
+use std::collections::HashMap;
 use types::{RelayChain::*, WeightConsumption};
 
 mod mock;
@@ -36,7 +40,11 @@ fn getting_all_consumption_data_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let consumption_data = parse_ok_response(response);
-		assert_eq!(consumption_data, mock_consumption().get(&para).unwrap().clone());
+		let expected_consumption = group_consumption(
+			mock_consumption().get(&para).unwrap().clone(),
+			Grouping::BlockNumber,
+		);
+		assert_eq!(consumption_data, expected_consumption);
 	});
 }
 
@@ -88,27 +96,31 @@ fn pagination_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let consumption_data = parse_ok_response(response);
+		let expected_data =
+			group_consumption(vec![mock_data.first().unwrap().clone()], Grouping::BlockNumber);
 		// Should only contain the first consumption data.
-		assert_eq!(consumption_data, vec![mock_data.first().unwrap().clone()]);
+		assert_eq!(consumption_data, expected_data);
 
 		// CASE 2: Specifying the page without page size will still show all the data.
 		let response = client.get("/consumption/polkadot/2000?page=0").dispatch();
 		assert_eq!(response.status(), Status::Ok);
 
 		let consumption_data = parse_ok_response(response);
+		let expected_data = group_consumption(mock_data.clone(), Grouping::BlockNumber);
 		// Should only contain the first consumption data.
-		assert_eq!(consumption_data, mock_data);
+		assert_eq!(consumption_data, expected_data);
 
 		// CASE 3: Specifying the page and page size works.
 		let response = client.get("/consumption/polkadot/2000?page=1&page_size=2").dispatch();
 		assert_eq!(response.status(), Status::Ok);
 
 		let consumption_data = parse_ok_response(response);
-		// Should skip the first page and take the second one.
-		assert_eq!(
-			consumption_data,
-			mock_data.into_iter().skip(2).take(2).collect::<Vec<WeightConsumption>>()
+		let expected_data = group_consumption(
+			mock_data.into_iter().skip(2).take(2).collect::<Vec<WeightConsumption>>(),
+			Grouping::BlockNumber,
 		);
+		// Should skip the first page and take the second one.
+		assert_eq!(consumption_data, expected_data);
 
 		// CASE 4: An out-of-bound page and page size will return an empty vector.
 		let response = client.get("/consumption/polkadot/2000?page=69&page_size=42").dispatch();
@@ -134,11 +146,14 @@ fn timestamp_based_filtering_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let response_data = parse_ok_response(response);
-		let expected_data = mock_data
-			.clone()
-			.into_iter()
-			.filter(|c| c.timestamp >= start_timestamp)
-			.collect::<Vec<WeightConsumption>>();
+		let expected_data = group_consumption(
+			mock_data
+				.clone()
+				.into_iter()
+				.filter(|c| c.timestamp >= start_timestamp)
+				.collect::<Vec<WeightConsumption>>(),
+			Grouping::BlockNumber,
+		);
 
 		// Should only contain the consumption where the timestamp is greater than or equal to 6.
 		assert_eq!(response_data, expected_data);
@@ -149,11 +164,14 @@ fn timestamp_based_filtering_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let response_data = parse_ok_response(response);
-		let expected_data = mock_data
-			.clone()
-			.into_iter()
-			.filter(|c| c.timestamp <= end_timestamp)
-			.collect::<Vec<WeightConsumption>>();
+		let expected_data = group_consumption(
+			mock_data
+				.clone()
+				.into_iter()
+				.filter(|c| c.timestamp <= end_timestamp)
+				.collect::<Vec<WeightConsumption>>(),
+			Grouping::BlockNumber,
+		);
 
 		// Should only contain the consumption where the timestamp is less than or equal to 12.
 		assert_eq!(response_data, expected_data);
@@ -165,10 +183,13 @@ fn timestamp_based_filtering_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let response_data = parse_ok_response(response);
-		let expected_data = mock_data
-			.into_iter()
-			.filter(|c| c.timestamp >= start_timestamp && c.timestamp <= end_timestamp)
-			.collect::<Vec<WeightConsumption>>();
+		let expected_data = group_consumption(
+			mock_data
+				.into_iter()
+				.filter(|c| c.timestamp >= start_timestamp && c.timestamp <= end_timestamp)
+				.collect::<Vec<WeightConsumption>>(),
+			Grouping::BlockNumber,
+		);
 
 		assert_eq!(response_data, expected_data);
 		// Should only contain one consumption data since the `start` and `end` are set to the same
@@ -199,19 +220,22 @@ fn pagination_and_timestamp_filtering_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let response_data = parse_ok_response(response);
-		let expected_data = mock_data
-			.into_iter()
-			.filter(|c| c.timestamp >= start_timestamp)
-			.skip(page_size * page_number)
-			.take(page_size)
-			.collect::<Vec<WeightConsumption>>();
+		let expected_data = group_consumption(
+			mock_data
+				.into_iter()
+				.filter(|c| c.timestamp >= start_timestamp)
+				.skip(page_size * page_number)
+				.take(page_size)
+				.collect::<Vec<WeightConsumption>>(),
+			Grouping::BlockNumber,
+		);
 
 		// Check if the data is filtered by timestamp and then paginated
 		assert_eq!(response_data, expected_data);
 	});
 }
 
-fn parse_ok_response<'a>(response: LocalResponse<'a>) -> Vec<WeightConsumption> {
+fn parse_ok_response<'a>(response: LocalResponse<'a>) -> HashMap<String, AggregatedData> {
 	let body = response.into_string().unwrap();
 	serde_json::from_str(&body).expect("can't parse value")
 }
