@@ -15,14 +15,13 @@
 
 #[cfg(test)]
 use maplit::hashmap;
-use routes::consumption::{AggregatedData, Grouping};
 use scopeguard::guard;
 use shared::{
 	chaindata::get_para, consumption::write_consumption, registry::update_registry,
 	reset_mock_environment,
 };
 use std::collections::HashMap;
-use types::{ParaId, Parachain, RelayChain, RelayChain::*, WeightConsumption};
+use types::{Parachain, RelayChain::*, WeightConsumption};
 
 #[derive(Default)]
 pub struct MockEnvironment {

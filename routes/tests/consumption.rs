@@ -235,6 +235,53 @@ fn pagination_and_timestamp_filtering_works() {
 	});
 }
 
+#[test]
+fn grouping_works() {
+	MockEnvironment::new().execute_with(|| {
+		let rocket = rocket::build().mount("/", routes![consumption]);
+		let client = Client::tracked(rocket).expect("valid rocket instance");
+
+		// Default is grouping by block number:
+		let para = get_para(Polkadot, 2000).unwrap();
+		let response = client.get("/consumption/polkadot/2000").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_ok_response(response);
+		let expected_consumption = group_consumption(
+			mock_consumption().get(&para).unwrap().clone(),
+			Grouping::BlockNumber,
+		);
+		assert_eq!(consumption_data, expected_consumption);
+
+		// Grouping by day:
+		let response = client.get("/consumption/polkadot/2000?grouping=day").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_ok_response(response);
+		let expected_consumption =
+			group_consumption(mock_consumption().get(&para).unwrap().clone(), Grouping::Day);
+		assert_eq!(consumption_data, expected_consumption);
+
+		// Grouping by month:
+		let response = client.get("/consumption/polkadot/2000?grouping=month").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_ok_response(response);
+		let expected_consumption =
+			group_consumption(mock_consumption().get(&para).unwrap().clone(), Grouping::Month);
+		assert_eq!(consumption_data, expected_consumption);
+
+		// Grouping by year:
+		let response = client.get("/consumption/polkadot/2000?grouping=year").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_ok_response(response);
+		let expected_consumption =
+			group_consumption(mock_consumption().get(&para).unwrap().clone(), Grouping::Year);
+		assert_eq!(consumption_data, expected_consumption);
+	});
+}
+
 fn parse_ok_response<'a>(response: LocalResponse<'a>) -> HashMap<String, AggregatedData> {
 	let body = response.into_string().unwrap();
 	serde_json::from_str(&body).expect("can't parse value")
