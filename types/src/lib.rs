@@ -94,7 +94,7 @@ pub struct WeightConsumption {
 	pub proof_size: DispatchClassConsumption,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Default, Debug, Serialize, PartialEq, Deserialize, Clone)]
 pub struct DispatchClassConsumption {
 	/// The percentage of the weight used by user submitted extrinsics compared to the
 	/// maximum potential.
