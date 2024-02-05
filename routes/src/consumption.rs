@@ -95,7 +95,7 @@ pub fn group_consumption(
 ) -> HashMap<String, AggregatedData> {
 	weight_consumptions.iter().fold(HashMap::new(), |mut acc, datum| {
 		let key = get_aggregation_key(datum.clone(), grouping);
-		let entry = acc.entry(key).or_insert_with(Default::default);
+		let entry = acc.entry(key).or_default();
 
 		entry.ref_time.normal += datum.ref_time.normal;
 		entry.ref_time.operational += datum.ref_time.operational;
