@@ -56,16 +56,20 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 
 	let mut para = chaindata::get_para(relay_chain, para_id).map_err(Error::ChainDataError)?;
 
-	if let Some(payment_info) = config().payment_info {
+	let subscription_duration = if let Some(payment_info) = config().payment_info {
 		let payment_block_number =
 			registration_data.payment_block_number.ok_or(Error::PaymentRequired)?;
 
-		validate_registration_payment(para.clone(), payment_info, payment_block_number)
+		validate_registration_payment(para.clone(), payment_info.clone(), payment_block_number)
 			.await
 			.map_err(Error::PaymentValidationError)?;
-	}
 
-	para.last_payment_timestamp = current_timestamp();
+		payment_info.subscription_duration
+	} else {
+		Default::default()
+	};
+
+	para.expiry_timestamp = current_timestamp() + subscription_duration;
 
 	paras.push(para);
 

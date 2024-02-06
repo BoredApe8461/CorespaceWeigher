@@ -8,3 +8,5 @@ chaindata = "chaindata.json"
 #cost = "1000000000" #0.001 ROC
 # 2,419,200 is 4 weeks in seconds.
 #subscription_duration = 2419200 
+# 604800 is 1 week in seconds.
+#renewal_period=604800

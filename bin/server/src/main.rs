@@ -19,7 +19,10 @@
 /// - `/consumption`: Used to query consumption data associated with a parachain.
 /// - `/register`: Used to register a parachain for consumption tracking.
 use rocket_cors::CorsOptions;
-use routes::{consumption::consumption, register::register_para, registry::registry};
+use routes::{
+	consumption::consumption, extend_subscription::extend_subscription, register::register_para,
+	registry::registry,
+};
 
 #[macro_use]
 extern crate rocket;
@@ -28,5 +31,5 @@ extern crate rocket;
 fn rocket() -> _ {
 	rocket::build()
 		.attach(CorsOptions::default().to_cors().unwrap())
-		.mount("/", routes![consumption, register_para, registry])
+		.mount("/", routes![consumption, register_para, registry, extend_subscription])
 }
