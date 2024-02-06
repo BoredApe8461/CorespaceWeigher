@@ -76,7 +76,7 @@ pub async fn validate_registration_payment(
 	let last_finalized =
 		get_last_finalized_block(rpc_client.clone(), online_client.clone()).await?;
 	if payment_block_number > last_finalized {
-		return Err(PaymentError::Unfinalized)
+		return Err(PaymentError::Unfinalized);
 	}
 
 	let block_hash = get_block_hash(rpc_client, payment_block_number).await?;
