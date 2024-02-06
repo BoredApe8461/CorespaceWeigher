@@ -47,7 +47,7 @@ pub async fn extend_subscription(data: Json<ExtendSubscriptionData>) -> Result<(
 	let para = registered_para(relay_chain.clone(), para_id).ok_or(Error::NotRegistered)?;
 
 	let subscription_duration = if let Some(payment_info) = config().payment_info {
-		if para.expiry_timestamp - payment_info.renewal_period > current_timestamp() {
+		if para.expiry_timestamp.saturating_sub(payment_info.renewal_period) > current_timestamp() {
 			// Cannot renew yet.
 			return Err(Error::AlreadyRegistered);
 		}
