@@ -9,6 +9,6 @@
     ],
     "para_id": 2000,
     "relay_chain": "Polkadot",
-    "last_payment_timestamp": 1706728108
+    "expiry_timestamp": 1706728108
   }
 ]

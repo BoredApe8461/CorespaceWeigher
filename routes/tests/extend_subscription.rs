@@ -52,8 +52,8 @@ fn extend_subscription_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let registered = registered_para(Polkadot, 2000).unwrap();
-		// Ensure the `last_payment_timestamp` got updated:
-		assert!(registered.last_payment_timestamp != para.last_payment_timestamp);
+		// Ensure the `expiry_timestamp` got updated:
+		assert!(registered.expiry_timestamp != para.expiry_timestamp);
 	});
 }
 
