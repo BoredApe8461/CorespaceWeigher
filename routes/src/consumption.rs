@@ -28,6 +28,8 @@ use types::{DispatchClassConsumption, ParaId, Timestamp, WeightConsumption};
 #[serde(crate = "rocket::serde")]
 pub enum Grouping {
 	BlockNumber,
+	Minute,
+	Hour,
 	Day,
 	Month,
 	Year,
@@ -37,6 +39,8 @@ pub enum Grouping {
 impl<'r> FromFormField<'r> for Grouping {
 	fn from_value(field: ValueField<'r>) -> form::Result<'r, Self> {
 		match field.value {
+			"minute" => Ok(Grouping::Minute),
+			"hour" => Ok(Grouping::Hour),
 			"day" => Ok(Grouping::Day),
 			"month" => Ok(Grouping::Month),
 			"year" => Ok(Grouping::Year),
@@ -117,6 +121,8 @@ fn get_aggregation_key(datum: WeightConsumption, grouping: Grouping) -> String {
 
 	match grouping {
 		Grouping::BlockNumber => datum.block_number.to_string(),
+		Grouping::Minute => datetime.format("%Y-%m-%dT%H:%M").to_string(),
+		Grouping::Hour => datetime.format("%Y-%m-%dT%H:00").to_string(),
 		Grouping::Day => datetime.format("%Y-%m-%d").to_string(),
 		Grouping::Month => datetime.format("%Y-%m").to_string(),
 		Grouping::Year => datetime.format("%Y").to_string(),
