@@ -25,7 +25,6 @@ use routes::{
 };
 use shared::{
 	chaindata::get_para,
-	current_timestamp,
 	payment::PaymentError,
 	registry::{registered_para, update_registry},
 };
