@@ -53,9 +53,7 @@ fn main() {
 			};
 
 			consumption.into_iter().for_each(|data| {
-				if !processed.contains_key(&data.block_number) {
-					processed.insert(data.block_number, data);
-				}
+				processed.entry(data.block_number).or_insert(data);
 			});
 		});
 
