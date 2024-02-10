@@ -36,10 +36,16 @@ pub struct PaymentInfo {
 
 #[derive(serde::Deserialize)]
 pub struct Config {
+	/// Path to the root output directory.
 	pub output_directory: String,
+	/// Path to the registry file.
 	pub registry: String,
+	/// Path to the chaindata file.
 	pub chaindata: String,
+	/// The payment configuration.
 	pub payment_info: Option<PaymentInfo>,
+	/// The Number of distinct output directories.
+	pub outputs: usize,
 }
 
 pub fn config() -> Config {
@@ -47,6 +53,12 @@ pub fn config() -> Config {
 	toml::from_str(&config_str).expect("Failed to parse config file")
 }
 
-pub fn output_directory(rpc_index: usize) -> String {
-	format!("{}-{}", config().output_directory, rpc_index)
+pub fn output_directory(rpc_index: Option<usize>) -> String {
+	let output_dir = config().output_directory.trim_end_matches('/').to_string();
+
+	if let Some(rpc_index) = rpc_index {
+		format!("{}/out-{}", output_dir, rpc_index)
+	} else {
+		format!("{}/out", output_dir)
+	}
 }
