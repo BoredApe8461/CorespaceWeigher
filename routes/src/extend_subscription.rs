@@ -40,7 +40,7 @@ pub async fn extend_subscription(data: Json<ExtendSubscriptionData>) -> Result<(
 
 	log::info!(
 		target: LOG_TARGET,
-		"Attempting to extend subscription for para: {}:{}",
+		"{}-{} - Attempting to extend subscription for para",
 		relay_chain, para_id
 	);
 
@@ -76,7 +76,9 @@ pub async fn extend_subscription(data: Json<ExtendSubscriptionData>) -> Result<(
 	if let Err(err) = update_registry(paras) {
 		log::error!(
 			target: LOG_TARGET,
-			"Failed to extend subscription for para: {:?}",
+			"{}-{} Failed to extend subscription for para: {:?}",
+			para.relay_chain,
+			para.para_id,
 			err
 		);
 	}

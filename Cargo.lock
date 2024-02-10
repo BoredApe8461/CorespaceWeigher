@@ -3127,6 +3127,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "processor"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "log",
+ "polkadot-core-primitives",
+ "shared",
+ "types",
+]
+
+[[package]]
 name = "psm"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"

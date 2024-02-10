@@ -1,6 +1,7 @@
-output_directory = "out/out"
+output_directory = "out/"
 registry = "registry.json"
 chaindata = "chaindata.json"
+outputs = 2
 
 #[payment_info]
 #rpc_url = "wss://rococo-rpc.polkadot.io"

@@ -126,3 +126,25 @@ impl fmt::Display for WeightConsumption {
 		Ok(())
 	}
 }
+
+impl WeightConsumption {
+	/// Returns consumption data as a vector of strings, where each element
+	/// represents a column in a CSV format. Each string in the vector corresponds
+	/// to one column of data.
+	pub fn to_csv(&self) -> Vec<String> {
+		vec![
+			// Block number:
+			self.block_number.to_string(),
+			// Timestamp:
+			self.timestamp.to_string(),
+			// Reftime consumption:
+			self.ref_time.normal.to_string(),
+			self.ref_time.operational.to_string(),
+			self.ref_time.mandatory.to_string(),
+			// Proof size:
+			self.proof_size.normal.to_string(),
+			self.proof_size.operational.to_string(),
+			self.proof_size.mandatory.to_string(),
+		]
+	}
+}

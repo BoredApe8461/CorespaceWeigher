@@ -2,6 +2,7 @@ output_directory = "mock-out"
 registry = "mock-parachains.json"
 chaindata = "../chaindata.json"
 free_mode = true
+outputs = 1
 
 [payment_info]
 rpc_url = "wss://rococo-rpc.polkadot.io"

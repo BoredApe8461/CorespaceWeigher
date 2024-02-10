@@ -44,7 +44,7 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 
 	log::info!(
 		target: LOG_TARGET,
-		"Attempting to register para: {}:{}",
+		"{}-{} - Attempting to register para",
 		relay_chain, para_id
 	);
 
@@ -71,12 +71,14 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 
 	para.expiry_timestamp = current_timestamp() + subscription_duration;
 
-	paras.push(para);
+	paras.push(para.clone());
 
 	if let Err(err) = update_registry(paras) {
 		log::error!(
 			target: LOG_TARGET,
-			"Failed to register para: {:?}",
+			"{}-{} - Failed to register para: {:?}",
+			para.relay_chain,
+			para.para_id,
 			err
 		);
 	}
