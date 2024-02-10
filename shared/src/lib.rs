@@ -46,7 +46,7 @@ pub fn reset_mock_environment() {
 	// Reset the registered paras file:
 	let _registry = registry::init_registry();
 
-	let output_path = output_directory(Some(0));
+	let output_path = output_directory(None);
 	// Remove the output files:
 	let _ = std::fs::create_dir(output_path.clone());
 

@@ -54,7 +54,7 @@ pub fn config() -> Config {
 }
 
 pub fn output_directory(rpc_index: Option<usize>) -> String {
-	let output_dir =  config().output_directory.trim_end_matches('/').to_string();
+	let output_dir = config().output_directory.trim_end_matches('/').to_string();
 
 	if let Some(rpc_index) = rpc_index {
 		format!("{}/out-{}", output_dir, rpc_index)

@@ -38,7 +38,7 @@ impl MockEnvironment {
 
 		for (para, weight_consumptions) in &mock.weight_consumptions {
 			weight_consumptions.iter().for_each(|consumption| {
-				write_consumption(para.clone(), consumption.clone(), Some(0))
+				write_consumption(para.clone(), consumption.clone(), None)
 					.expect("Failed to write conusumption data");
 			});
 		}
