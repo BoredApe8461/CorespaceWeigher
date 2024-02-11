@@ -81,6 +81,9 @@ pub async fn extend_subscription(data: Json<ExtendSubscriptionData>) -> Result<(
 			para.para_id,
 			err
 		);
+	} else {
+		#[cfg(not(debug_assertions))]
+		shared::init_tracker();
 	}
 
 	Ok(())

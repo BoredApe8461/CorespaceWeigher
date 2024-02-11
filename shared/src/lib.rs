@@ -13,7 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+	process::Command,
+	time::{SystemTime, UNIX_EPOCH},
+};
 use types::Timestamp;
 
 pub mod chaindata;
@@ -38,6 +41,17 @@ pub fn current_timestamp() -> Timestamp {
 	// It is fine to use `unwrap_or_default` since the current time will never be before the UNIX
 	// EPOCH.
 	SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
+}
+
+pub fn init_tracker() {
+	let output = Command::new("./scripts/init.sh").output().expect("Failed to execute command");
+
+	if output.status.success() {
+		log::info!("Successfully reinitalized tracker");
+	} else {
+		let stderr = String::from_utf8_lossy(&output.stderr);
+		log::info!("Failed to reinitialize tracker: {:?}", stderr);
+	}
 }
 
 // There isn't a good reason to use this other than for testing.
