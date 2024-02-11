@@ -3,11 +3,11 @@ registry = "registry.json"
 chaindata = "chaindata.json"
 outputs = 2
 
-#[payment_info]
-#rpc_url = "wss://rococo-rpc.polkadot.io"
-#receiver = "5DADsnBXr5DXiEAjdJvruf6c7ZSUR8iXUTATQqJfheGLiEVm"
-#cost = "1000000000" #0.001 ROC
-# 2,419,200 is 4 weeks in seconds.
-#subscription_duration = 2419200 
+[payment_info]
+rpc_url = "wss://rococo-rpc.polkadot.io"
+receiver = "5DADsnBXr5DXiEAjdJvruf6c7ZSUR8iXUTATQqJfheGLiEVm"
+cost = "1000000000" #0.001 ROC
+# 7,890,000 is 3 months in seconds.
+subscription_duration =  7890000
 # 604800 is 1 week in seconds.
-#renewal_period=604800
+renewal_period=604800

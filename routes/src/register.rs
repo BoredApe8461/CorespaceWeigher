@@ -81,6 +81,9 @@ pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<
 			para.para_id,
 			err
 		);
+	} else {
+		#[cfg(not(debug_assertions))]
+		shared::init_tracker();
 	}
 
 	Ok(())
