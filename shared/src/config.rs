@@ -30,6 +30,7 @@ pub struct PaymentInfo {
 	pub cost: String,
 	/// This defines the duration that a single subscription payment will cover.
 	pub subscription_duration: Timestamp,
+
 	/// Defines how much before the expiry can the subscription be renewed.
 	pub renewal_period: Timestamp,
 }

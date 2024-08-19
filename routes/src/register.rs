@@ -17,10 +17,12 @@ use crate::*;
 use polkadot_core_primitives::BlockNumber;
 use rocket::{post, serde::json::Json};
 use shared::{
+
 	chaindata,
 	config::config,
 	current_timestamp,
 	payment::validate_registration_payment,
+
 	registry::{registered_para, registered_paras, update_registry},
 };
 use types::{ParaId, RelayChain};
@@ -40,7 +42,8 @@ pub struct RegistrationData {
 /// Register a parachain for resource utilization tracking.
 #[post("/register_para", data = "<registration_data>")]
 pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<(), Error> {
-	let (relay_chain, para_id) = registration_data.para.clone();
+
+
 
 	log::info!(
 		target: LOG_TARGET,

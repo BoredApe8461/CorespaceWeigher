@@ -55,6 +55,7 @@ fn register_works() {
 
 		assert_eq!(response.status(), Status::Ok);
 
+
 		let registered = registered_para(Polkadot, 2000).unwrap();
 
 		// Set the `expiry_timestamp` to the proper value.

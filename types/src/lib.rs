@@ -76,6 +76,7 @@ pub struct Parachain {
 	pub para_id: ParaId,
 	/// The relay chain that the parachain is using for block validation.
 	pub relay_chain: RelayChain,
+
 	/// The timestamp when the subscription expires.
 	pub expiry_timestamp: Timestamp,
 }

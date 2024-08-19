@@ -43,6 +43,7 @@ pub fn current_timestamp() -> Timestamp {
 	SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
 }
 
+
 pub fn init_tracker() {
 	let output = Command::new("./scripts/init.sh").output().expect("Failed to execute command");
 

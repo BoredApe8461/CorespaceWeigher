@@ -96,3 +96,4 @@ pub fn mock_consumption() -> HashMap<Parachain, Vec<WeightConsumption>> {
 		],
 	}
 }
+
