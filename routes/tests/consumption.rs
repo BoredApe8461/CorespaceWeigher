@@ -13,18 +13,21 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-#[cfg(test)]
 use rocket::{
 	http::Status,
 	local::blocking::{Client, LocalResponse},
 	routes,
 };
-use routes::{consumption::consumption, Error};
-use shared::{registry::update_registry, reset_mock_environment};
+use routes::{
+	consumption::{consumption, group_consumption, AggregatedData, Grouping},
+	Error,
+};
+use shared::{chaindata::get_para, registry::update_registry, reset_mock_environment};
+use std::collections::HashMap;
 use types::{RelayChain::*, WeightConsumption};
 
 mod mock;
-use mock::{mock_consumption, mock_para, MockEnvironment};
+use mock::{mock_consumption, MockEnvironment};
 
 #[test]
 fn getting_all_consumption_data_works() {
@@ -32,12 +35,16 @@ fn getting_all_consumption_data_works() {
 		let rocket = rocket::build().mount("/", routes![consumption]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2000);
+		let para = get_para(Polkadot, 2000).unwrap();
 		let response = client.get("/consumption/polkadot/2000").dispatch();
 		assert_eq!(response.status(), Status::Ok);
 
 		let consumption_data = parse_ok_response(response);
-		assert_eq!(consumption_data, mock_consumption().get(&para).unwrap().clone());
+		let expected_consumption = group_consumption(
+			mock_consumption().get(&para).unwrap().clone(),
+			Grouping::BlockNumber,
+		);
+		assert_eq!(consumption_data, expected_consumption);
 	});
 }
 
@@ -64,7 +71,7 @@ fn consumption_data_not_found_handled() {
 	let client = Client::tracked(rocket).expect("valid rocket instance");
 
 	// Register a parachain without storing any consumption data.
-	assert!(update_registry(vec![mock_para(Polkadot, 2000)]).is_ok());
+	assert!(update_registry(vec![get_para(Polkadot, 2000).unwrap()]).is_ok());
 
 	let response = client.get("/consumption/polkadot/2000").dispatch();
 	assert_eq!(response.status(), Status::InternalServerError);
@@ -81,7 +88,7 @@ fn pagination_works() {
 		let rocket = rocket::build().mount("/", routes![consumption]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2000);
+		let para = get_para(Polkadot, 2000).unwrap();
 		let mock_data = mock_consumption().get(&para).unwrap().clone();
 
 		// CASE 1: Limit response size by setting page size
@@ -89,27 +96,31 @@ fn pagination_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let consumption_data = parse_ok_response(response);
+		let expected_data =
+			group_consumption(vec![mock_data.first().unwrap().clone()], Grouping::BlockNumber);
 		// Should only contain the first consumption data.
-		assert_eq!(consumption_data, vec![mock_data.first().unwrap().clone()]);
+		assert_eq!(consumption_data, expected_data);
 
 		// CASE 2: Specifying the page without page size will still show all the data.
 		let response = client.get("/consumption/polkadot/2000?page=0").dispatch();
 		assert_eq!(response.status(), Status::Ok);
 
 		let consumption_data = parse_ok_response(response);
+		let expected_data = group_consumption(mock_data.clone(), Grouping::BlockNumber);
 		// Should only contain the first consumption data.
-		assert_eq!(consumption_data, mock_data);
+		assert_eq!(consumption_data, expected_data);
 
 		// CASE 3: Specifying the page and page size works.
 		let response = client.get("/consumption/polkadot/2000?page=1&page_size=2").dispatch();
 		assert_eq!(response.status(), Status::Ok);
 
 		let consumption_data = parse_ok_response(response);
-		// Should skip the first page and take the second one.
-		assert_eq!(
-			consumption_data,
-			mock_data.into_iter().skip(2).take(2).collect::<Vec<WeightConsumption>>()
+		let expected_data = group_consumption(
+			mock_data.into_iter().skip(2).take(2).collect::<Vec<WeightConsumption>>(),
+			Grouping::BlockNumber,
 		);
+		// Should skip the first page and take the second one.
+		assert_eq!(consumption_data, expected_data);
 
 		// CASE 4: An out-of-bound page and page size will return an empty vector.
 		let response = client.get("/consumption/polkadot/2000?page=69&page_size=42").dispatch();
@@ -126,7 +137,7 @@ fn timestamp_based_filtering_works() {
 		let rocket = rocket::build().mount("/", routes![consumption]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2000);
+		let para = get_para(Polkadot, 2000).unwrap();
 		let mock_data = mock_consumption().get(&para).unwrap().clone();
 
 		// CASE 1: setting the starting timestamp filters out the data.
@@ -135,11 +146,14 @@ fn timestamp_based_filtering_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let response_data = parse_ok_response(response);
-		let expected_data = mock_data
-			.clone()
-			.into_iter()
-			.filter(|c| c.timestamp >= start_timestamp)
-			.collect::<Vec<WeightConsumption>>();
+		let expected_data = group_consumption(
+			mock_data
+				.clone()
+				.into_iter()
+				.filter(|c| c.timestamp >= start_timestamp)
+				.collect::<Vec<WeightConsumption>>(),
+			Grouping::BlockNumber,
+		);
 
 		// Should only contain the consumption where the timestamp is greater than or equal to 6.
 		assert_eq!(response_data, expected_data);
@@ -150,11 +164,14 @@ fn timestamp_based_filtering_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let response_data = parse_ok_response(response);
-		let expected_data = mock_data
-			.clone()
-			.into_iter()
-			.filter(|c| c.timestamp <= end_timestamp)
-			.collect::<Vec<WeightConsumption>>();
+		let expected_data = group_consumption(
+			mock_data
+				.clone()
+				.into_iter()
+				.filter(|c| c.timestamp <= end_timestamp)
+				.collect::<Vec<WeightConsumption>>(),
+			Grouping::BlockNumber,
+		);
 
 		// Should only contain the consumption where the timestamp is less than or equal to 12.
 		assert_eq!(response_data, expected_data);
@@ -166,10 +183,13 @@ fn timestamp_based_filtering_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let response_data = parse_ok_response(response);
-		let expected_data = mock_data
-			.into_iter()
-			.filter(|c| c.timestamp >= start_timestamp && c.timestamp <= end_timestamp)
-			.collect::<Vec<WeightConsumption>>();
+		let expected_data = group_consumption(
+			mock_data
+				.into_iter()
+				.filter(|c| c.timestamp >= start_timestamp && c.timestamp <= end_timestamp)
+				.collect::<Vec<WeightConsumption>>(),
+			Grouping::BlockNumber,
+		);
 
 		assert_eq!(response_data, expected_data);
 		// Should only contain one consumption data since the `start` and `end` are set to the same
@@ -184,7 +204,7 @@ fn pagination_and_timestamp_filtering_works() {
 		let rocket = rocket::build().mount("/", routes![consumption]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2000);
+		let para = get_para(Polkadot, 2000).unwrap();
 		let mock_data = mock_consumption().get(&para).unwrap().clone();
 
 		// Combined Case: Filter by timestamp and paginate
@@ -200,19 +220,89 @@ fn pagination_and_timestamp_filtering_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let response_data = parse_ok_response(response);
-		let expected_data = mock_data
-			.into_iter()
-			.filter(|c| c.timestamp >= start_timestamp)
-			.skip(page_size * page_number)
-			.take(page_size)
-			.collect::<Vec<WeightConsumption>>();
+		let expected_data = group_consumption(
+			mock_data
+				.into_iter()
+				.filter(|c| c.timestamp >= start_timestamp)
+				.skip(page_size * page_number)
+				.take(page_size)
+				.collect::<Vec<WeightConsumption>>(),
+			Grouping::BlockNumber,
+		);
 
 		// Check if the data is filtered by timestamp and then paginated
 		assert_eq!(response_data, expected_data);
 	});
 }
 
-fn parse_ok_response<'a>(response: LocalResponse<'a>) -> Vec<WeightConsumption> {
+#[test]
+fn grouping_works() {
+	MockEnvironment::new().execute_with(|| {
+		let rocket = rocket::build().mount("/", routes![consumption]);
+		let client = Client::tracked(rocket).expect("valid rocket instance");
+
+		// Default is grouping by block number:
+		let para = get_para(Polkadot, 2000).unwrap();
+		let response = client.get("/consumption/polkadot/2000").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_ok_response(response);
+		let expected_consumption = group_consumption(
+			mock_consumption().get(&para).unwrap().clone(),
+			Grouping::BlockNumber,
+		);
+		assert_eq!(consumption_data, expected_consumption);
+
+		// Grouping by minute:
+		let response = client.get("/consumption/polkadot/2000?grouping=minute").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_ok_response(response);
+		let expected_consumption =
+			group_consumption(mock_consumption().get(&para).unwrap().clone(), Grouping::Minute);
+		assert_eq!(consumption_data, expected_consumption);
+
+		// Grouping by hour:
+		let response = client.get("/consumption/polkadot/2000?grouping=hour").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_ok_response(response);
+		let expected_consumption =
+			group_consumption(mock_consumption().get(&para).unwrap().clone(), Grouping::Hour);
+		assert_eq!(consumption_data, expected_consumption);
+
+		// Grouping by day:
+		let response = client.get("/consumption/polkadot/2000?grouping=day").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_ok_response(response);
+		let expected_consumption =
+			group_consumption(mock_consumption().get(&para).unwrap().clone(), Grouping::Day);
+		assert_eq!(consumption_data, expected_consumption);
+
+		// Grouping by month:
+		let response = client.get("/consumption/polkadot/2000?grouping=month").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_ok_response(response);
+		let expected_consumption =
+			group_consumption(mock_consumption().get(&para).unwrap().clone(), Grouping::Month);
+		assert_eq!(consumption_data, expected_consumption);
+
+		// Grouping by year:
+		let response = client.get("/consumption/polkadot/2000?grouping=year").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_ok_response(response);
+		let expected_consumption =
+			group_consumption(mock_consumption().get(&para).unwrap().clone(), Grouping::Year);
+		assert_eq!(consumption_data, expected_consumption);
+	});
+}
+
+
+fn parse_ok_response<'a>(response: LocalResponse<'a>) -> Vec<AggregatedData> {
+
 	let body = response.into_string().unwrap();
 	serde_json::from_str(&body).expect("can't parse value")
 }

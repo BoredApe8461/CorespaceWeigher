@@ -14,23 +14,17 @@
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
 use polkadot_core_primitives::BlockNumber;
-#[cfg(test)]
 use rocket::{
 	http::{ContentType, Status},
 	local::blocking::{Client, LocalResponse},
 	routes,
 };
-use routes::{
-	register::{register_para, RegistrationData},
-	Error,
-};
+use routes::{register::register_para, Error};
 use shared::registry::{registered_para, registered_paras};
 use types::RelayChain::*;
 
 mod mock;
 use mock::{mock_para, MockEnvironment};
-
-const PARA_2001_PAYMENT: BlockNumber = 8625079;
 
 #[test]
 fn register_works() {
@@ -39,8 +33,6 @@ fn register_works() {
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
 		let para = mock_para(Polkadot, 2001);
-		let registration_data =
-			RegistrationData { para: para.clone(), payment_block_number: Some(PARA_2001_PAYMENT) };
 
 		let response = client
 			.post("/register_para")
@@ -50,9 +42,15 @@ fn register_works() {
 
 		assert_eq!(response.status(), Status::Ok);
 
+
+		let registered = registered_para(Polkadot, 2000).unwrap();
+
+		// Set the `expiry_timestamp` to the proper value.
+		para.expiry_timestamp = registered.expiry_timestamp;
+
 		// Ensure the parachain is properly registered:
 		assert_eq!(registered_paras(), vec![para.clone()]);
-		assert_eq!(registered_para(Polkadot, 2001), Some(para));
+		assert_eq!(registered, para);
 	});
 }
 
@@ -63,8 +61,6 @@ fn cannot_register_same_para_twice() {
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
 		let para = mock_para(Polkadot, 2001);
-		let registration_data =
-			RegistrationData { para, payment_block_number: Some(PARA_2001_PAYMENT) };
 
 		let register = client
 			.post("/register_para")
@@ -74,65 +70,6 @@ fn cannot_register_same_para_twice() {
 		// Cannot register the same para twice:
 		assert_eq!(register.clone().dispatch().status(), Status::Ok);
 		assert_eq!(parse_err_response(register.dispatch()), Error::AlreadyRegistered);
-	});
-}
-
-#[test]
-fn providing_no_payment_info_fails() {
-	MockEnvironment::default().execute_with(|| {
-		let rocket = rocket::build().mount("/", routes![register_para]);
-		let client = Client::tracked(rocket).expect("valid rocket instance");
-
-		let para = mock_para(Polkadot, 2020);
-		let registration_data = RegistrationData { para, payment_block_number: None };
-
-		let response = client
-			.post("/register_para")
-			.header(ContentType::JSON)
-			.body(serde_json::to_string(&registration_data).unwrap())
-			.dispatch();
-
-		assert_eq!(parse_err_response(response), Error::PaymentRequired);
-	});
-}
-
-#[test]
-fn providing_non_finalized_payment_block_number_fails() {
-	MockEnvironment::default().execute_with(|| {
-		let rocket = rocket::build().mount("/", routes![register_para]);
-		let client = Client::tracked(rocket).expect("valid rocket instance");
-
-		let para = mock_para(Polkadot, 2020);
-		let registration_data = RegistrationData { para, payment_block_number: Some(99999999) };
-
-		let response = client
-			.post("/register_para")
-			.header(ContentType::JSON)
-			.body(serde_json::to_string(&registration_data).unwrap())
-			.dispatch();
-
-		assert_eq!(parse_err_response(response), Error::UnfinalizedPayment);
-	});
-}
-
-#[test]
-fn payment_not_found_works() {
-	MockEnvironment::default().execute_with(|| {
-		let rocket = rocket::build().mount("/", routes![register_para]);
-		let client = Client::tracked(rocket).expect("valid rocket instance");
-
-		// We are registering para 2020, but the payment is for para 2001.
-		let para = mock_para(Polkadot, 2020);
-		let registration_data =
-			RegistrationData { para, payment_block_number: Some(PARA_2001_PAYMENT) };
-
-		let response = client
-			.post("/register_para")
-			.header(ContentType::JSON)
-			.body(serde_json::to_string(&registration_data).unwrap())
-			.dispatch();
-
-		assert_eq!(parse_err_response(response), Error::PaymentNotFound);
 	});
 }
 
