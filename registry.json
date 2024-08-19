@@ -1,0 +1,69 @@
+[
+  {
+    "name": "Acala",
+    "rpcs": [
+      "wss://acala-rpc.dwellir.com",
+      "wss://acala-rpc-0.aca-api.network",
+      "wss://acala-rpc-1.aca-api.network",
+      "wss://acala-rpc-3.aca-api.network/ws"
+    ],
+    "para_id": 2000,
+    "relay_chain": "Polkadot",
+
+    "expiry_timestamp": 1709740246
+  },
+  {
+    "name": "Polkadot",
+    "rpcs": [
+      "wss://rpc-polkadot.luckyfriday.io",
+      "wss://polkadot-rpc.dwellir.com"
+    ],
+    "para_id": 0,
+    "relay_chain": "Polkadot",
+    "expiry_timestamp": 1709740246
+  },
+  {
+    "name": "Moonbeam",
+    "rpcs": [
+      "wss://moonbeam-rpc.dwellir.com",
+      "wss://wss.api.moonbeam.network",
+      "wss://1rpc.io/glmr",
+      "wss://moonbeam.unitedbloc.com"
+    ],
+    "para_id": 2004,
+    "relay_chain": "Polkadot",
+    "expiry_timestamp": 1709740246
+  },
+  {
+    "name": "Astar",
+    "rpcs": [
+      "wss://astar.public.curie.radiumblock.co/ws",
+      "wss://rpc.astar.network",
+      "wss://astar-rpc.dwellir.com",
+      "wss://1rpc.io/astr"
+    ],
+    "para_id": 2006,
+    "relay_chain": "Polkadot",
+    "expiry_timestamp": 1709740246
+  },
+  {
+    "name": "HydraDX",
+    "rpcs": [
+      "wss://hydradx-rpc.dwellir.com",
+      "wss://rpc.hydradx.cloud"
+    ],
+    "para_id": 2034,
+    "relay_chain": "Polkadot",
+    "expiry_timestamp": 1709740246
+  },
+  {
+    "name": "Zeitgeist",
+    "rpcs": [
+      "wss://zeitgeist-rpc.dwellir.com",
+      "wss://main.rpc.zeitgeist.pm/ws"
+    ],
+    "para_id": 2092,
+    "relay_chain": "Polkadot",
+    "expiry_timestamp": 1709740246
+  }
+]

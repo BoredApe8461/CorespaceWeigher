@@ -37,6 +37,14 @@ The `tracker` binary is responsible for tracking the actual consumption data of 
 
 The `server` binary provides a web interface that can be used for registering a parachain for consumption tracking, as well as for querying all the consumption data.
 
+### Watchdog 🐕
+
+WebSocket connections can be closed due to underlying networking issues. In such cases, the tracking of parachain data would stop. For this reason, a script called 'watchdog' is introduced to ensure the tracker attempts to create a new connection whenever the current one is broken.
+
+```sh
+./scripts/watchdog.sh
+```
+
 ## Web API
 
 #### Registering a parachain
@@ -45,10 +53,7 @@ A basic example of registering a parachain:
 
 ```
 curl -X POST http://127.0.0.1:8000/register_para -H "Content-Type: application/json" -d '{
-    "name": "Acala",
-    "rpc_url": "wss://acala-rpc.dwellir.com",
-    "para_id": 2000,  
-    "relay_chain": "Polkadot"
+    "para": ["Polkadot", 2000]                                                 
 }'
 ```
 
@@ -58,4 +63,11 @@ A basic example of querying the consumption of a parachain with the paraID 2000 
 
 ```
 curl http://127.0.0.1:8000/consumption/polkadot/2000
+```
+
+## Local development
+
+For local development, you can run the entire suite of tests using the command below. It's important to run tests sequentially as some of them depend on shared mock state. This approach ensures that each test runs in isolation without interference from others.
+```
+cargo test -- --test-threads=1
 ```
