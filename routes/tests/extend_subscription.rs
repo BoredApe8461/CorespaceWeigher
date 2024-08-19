@@ -25,7 +25,6 @@ use routes::{
 };
 use shared::{
 	chaindata::get_para,
-	current_timestamp,
 	payment::PaymentError,
 	registry::{registered_para, update_registry},
 };
@@ -34,7 +33,7 @@ use types::RelayChain::*;
 mod mock;
 use mock::MockEnvironment;
 
-const PARA_2000_PAYMENT: BlockNumber = 8624975;
+const PARA_2000_PAYMENT: BlockNumber = 9145403;
 
 #[test]
 fn extend_subscription_works() {

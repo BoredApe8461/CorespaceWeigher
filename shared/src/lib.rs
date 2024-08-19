@@ -13,7 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+	process::Command,
+	time::{SystemTime, UNIX_EPOCH},
+};
 use types::Timestamp;
 
 pub mod chaindata;
@@ -40,13 +43,24 @@ pub fn current_timestamp() -> Timestamp {
 	SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
 }
 
+pub fn init_tracker() {
+	let output = Command::new("./scripts/init.sh").output().expect("Failed to execute command");
+
+	if output.status.success() {
+		log::info!("Successfully reinitalized tracker");
+	} else {
+		let stderr = String::from_utf8_lossy(&output.stderr);
+		log::info!("Failed to reinitialize tracker: {:?}", stderr);
+	}
+}
+
 // There isn't a good reason to use this other than for testing.
 #[cfg(feature = "test-utils")]
 pub fn reset_mock_environment() {
 	// Reset the registered paras file:
 	let _registry = registry::init_registry();
 
-	let output_path = output_directory(0);
+	let output_path = output_directory(None);
 	// Remove the output files:
 	let _ = std::fs::create_dir(output_path.clone());
 

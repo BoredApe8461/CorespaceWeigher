@@ -20,7 +20,7 @@ use types::{Parachain, WeightConsumption};
 
 pub fn get_consumption(
 	para: Parachain,
-	rpc_index: usize,
+	rpc_index: Option<usize>,
 ) -> Result<Vec<WeightConsumption>, &'static str> {
 	let file =
 		File::open(output_file_path(para, rpc_index)).map_err(|_| "Consumption data not found")?;
@@ -37,11 +37,11 @@ pub fn get_consumption(
 pub fn write_consumption(
 	para: Parachain,
 	consumption: WeightConsumption,
-	rpc_index: usize,
+	rpc_index: Option<usize>,
 ) -> Result<(), std::io::Error> {
 	log::info!(
 		target: LOG_TARGET,
-		"Writing weight consumption for Para {}-{} for block: #{}",
+		"{}-{} - Writing weight consumption for block: #{}",
 		para.relay_chain, para.para_id, consumption.block_number
 	);
 
@@ -51,24 +51,61 @@ pub fn write_consumption(
 	let mut wtr = WriterBuilder::new().from_writer(file);
 
 	// The data is stored in the sequence described at the beginning of the file.
-	wtr.write_record(&[
-		// Block number:
-		consumption.block_number.to_string(),
-		// Timestamp:
-		consumption.timestamp.to_string(),
-		// Reftime consumption:
-		consumption.ref_time.normal.to_string(),
-		consumption.ref_time.operational.to_string(),
-		consumption.ref_time.mandatory.to_string(),
-		// Proof size:
-		consumption.proof_size.normal.to_string(),
-		consumption.proof_size.operational.to_string(),
-		consumption.proof_size.mandatory.to_string(),
-	])?;
+	wtr.write_record(&consumption.to_csv())?;
 
 	wtr.flush()
 }
 
-fn output_file_path(para: Parachain, rpc_index: usize) -> String {
+pub fn write_batch_consumption(
+	para: Parachain,
+	consumption: Vec<WeightConsumption>,
+) -> Result<(), std::io::Error> {
+	log::info!(
+		target: LOG_TARGET,
+		"{}-{} - Writing batch weight consumption.",
+		para.relay_chain, para.para_id
+	);
+
+	let output_file_path = output_file_path(para, None);
+	let file = OpenOptions::new().create(true).append(true).open(output_file_path)?;
+
+	let mut wtr = WriterBuilder::new().from_writer(file);
+
+	// TODO: add a to_csv function
+	consumption.iter().try_for_each(|entry| {
+		// The data is stored in the sequence described at the beginning of the file.
+		wtr.write_record(&entry.to_csv())
+	})?;
+
+	wtr.flush()
+}
+
+pub fn delete_consumption(para: Parachain, rpc_index: usize) {
+	log::info!(
+		target: LOG_TARGET,
+		"{}-{} - Deleting weight consumption.",
+		para.relay_chain, para.para_id
+	);
+
+	let output_file_path = output_file_path(para, Some(rpc_index));
+	match std::fs::remove_file(output_file_path.clone()) {
+		Ok(_) => {
+			log::info!(
+				target: LOG_TARGET,
+				"{} Deleted successfully",
+				output_file_path
+			);
+		},
+		Err(e) => {
+			log::error!(
+				target: LOG_TARGET,
+				"{} Failed to delete: {:?}",
+				output_file_path, e
+			);
+		},
+	}
+}
+
+fn output_file_path(para: Parachain, rpc_index: Option<usize>) -> String {
 	format!("{}/{}-{}.csv", output_directory(rpc_index), para.relay_chain, para.para_id)
 }

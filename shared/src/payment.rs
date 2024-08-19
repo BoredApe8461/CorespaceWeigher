@@ -118,7 +118,9 @@ async fn opaque_payment_extrinsic(
 			value: cost,
 		});
 
-		let remark = format!("{}:{}", para.relay_chain, para.para_id).as_bytes().to_vec();
+		let remark = format!("regionx-weigher::{}:{}", para.relay_chain, para.para_id)
+			.as_bytes()
+			.to_vec();
 		let remark_call = polkadot::Call::System(SystemCall::remark { remark });
 
 		let batch_call = polkadot::Call::Utility(UtilityCall::batch_all {
