@@ -22,6 +22,7 @@ use rocket::{
 };
 use shared::{consumption::get_consumption, registry::registered_para};
 use std::collections::BTreeMap;
+
 use types::{DispatchClassConsumption, ParaId, Timestamp, WeightConsumption};
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
