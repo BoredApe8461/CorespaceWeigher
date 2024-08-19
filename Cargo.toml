@@ -6,6 +6,7 @@ license = "GPL-3.0-only"
 
 [workspace]
 members = [
+    "bin/processor",
     "bin/server",
     "bin/tracker",
     "routes",

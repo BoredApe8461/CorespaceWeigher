@@ -53,12 +53,7 @@ A basic example of registering a parachain:
 
 ```
 curl -X POST http://127.0.0.1:8000/register_para -H "Content-Type: application/json" -d '{
-	"para": {
-		"name": "Acala",
-		"rpc_url": "wss://acala-rpc.dwellir.com",
-		"para_id": 2000,
-		"relay_chain": "Polkadot"
-	}
+    "para": ["Polkadot", 2000]                                                 
 }'
 ```
 

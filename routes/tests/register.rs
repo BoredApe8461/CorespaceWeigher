@@ -23,13 +23,17 @@ use routes::{
 	register::{register_para, RegistrationData},
 	Error,
 };
-use shared::registry::{registered_para, registered_paras};
+use shared::{
+	chaindata::get_para,
+	payment::PaymentError,
+	registry::{registered_para, registered_paras},
+};
 use types::RelayChain::*;
 
 mod mock;
-use mock::{mock_para, MockEnvironment};
+use mock::MockEnvironment;
 
-const PARA_2001_PAYMENT: BlockNumber = 8625079;
+const PARA_2000_PAYMENT: BlockNumber = 9145403;
 
 #[test]
 fn register_works() {
@@ -37,9 +41,11 @@ fn register_works() {
 		let rocket = rocket::build().mount("/", routes![register_para]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2001);
-		let registration_data =
-			RegistrationData { para: para.clone(), payment_block_number: Some(PARA_2001_PAYMENT) };
+		let mut para = get_para(Polkadot, 2000).unwrap();
+		let registration_data = RegistrationData {
+			para: (Polkadot, 2000),
+			payment_block_number: Some(PARA_2000_PAYMENT),
+		};
 
 		let response = client
 			.post("/register_para")
@@ -49,9 +55,14 @@ fn register_works() {
 
 		assert_eq!(response.status(), Status::Ok);
 
+		let registered = registered_para(Polkadot, 2000).unwrap();
+
+		// Set the `expiry_timestamp` to the proper value.
+		para.expiry_timestamp = registered.expiry_timestamp;
+
 		// Ensure the parachain is properly registered:
 		assert_eq!(registered_paras(), vec![para.clone()]);
-		assert_eq!(registered_para(Polkadot, 2001), Some(para));
+		assert_eq!(registered, para);
 	});
 }
 
@@ -61,9 +72,10 @@ fn cannot_register_same_para_twice() {
 		let rocket = rocket::build().mount("/", routes![register_para]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2001);
-		let registration_data =
-			RegistrationData { para, payment_block_number: Some(PARA_2001_PAYMENT) };
+		let registration_data = RegistrationData {
+			para: (Polkadot, 2000),
+			payment_block_number: Some(PARA_2000_PAYMENT),
+		};
 
 		let register = client
 			.post("/register_para")
@@ -82,8 +94,8 @@ fn providing_no_payment_info_fails() {
 		let rocket = rocket::build().mount("/", routes![register_para]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2020);
-		let registration_data = RegistrationData { para, payment_block_number: None };
+		let registration_data =
+			RegistrationData { para: (Polkadot, 2006), payment_block_number: None };
 
 		let response = client
 			.post("/register_para")
@@ -101,8 +113,8 @@ fn providing_non_finalized_payment_block_number_fails() {
 		let rocket = rocket::build().mount("/", routes![register_para]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let para = mock_para(Polkadot, 2020);
-		let registration_data = RegistrationData { para, payment_block_number: Some(99999999) };
+		let registration_data =
+			RegistrationData { para: (Polkadot, 2006), payment_block_number: Some(99999999) };
 
 		let response = client
 			.post("/register_para")
@@ -110,7 +122,10 @@ fn providing_non_finalized_payment_block_number_fails() {
 			.body(serde_json::to_string(&registration_data).unwrap())
 			.dispatch();
 
-		assert_eq!(parse_err_response(response), Error::UnfinalizedPayment);
+		assert_eq!(
+			parse_err_response(response),
+			Error::PaymentValidationError(PaymentError::Unfinalized)
+		);
 	});
 }
 
@@ -120,10 +135,11 @@ fn payment_not_found_works() {
 		let rocket = rocket::build().mount("/", routes![register_para]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		// We are registering para 2020, but the payment is for para 2001.
-		let para = mock_para(Polkadot, 2020);
-		let registration_data =
-			RegistrationData { para, payment_block_number: Some(PARA_2001_PAYMENT) };
+		// We are registering para 2006, but the payment is for para 2000.
+		let registration_data = RegistrationData {
+			para: (Polkadot, 2006),
+			payment_block_number: Some(PARA_2000_PAYMENT),
+		};
 
 		let response = client
 			.post("/register_para")
@@ -131,7 +147,10 @@ fn payment_not_found_works() {
 			.body(serde_json::to_string(&registration_data).unwrap())
 			.dispatch();
 
-		assert_eq!(parse_err_response(response), Error::PaymentNotFound);
+		assert_eq!(
+			parse_err_response(response),
+			Error::PaymentValidationError(PaymentError::NotFound)
+		);
 	});
 }
 

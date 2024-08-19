@@ -24,7 +24,7 @@ pub fn registered_paras() -> Vec<Parachain> {
 	let mut registry = get_registry();
 	let mut content = String::new();
 
-	// If this fails it simply means that the registered parachains is still empty.
+	// If this fails it simply means that the registry is empty.
 	let _ = registry.read_to_string(&mut content);
 	let paras: Vec<Parachain> = serde_json::from_str(&content).expect("Failed to serialize");
 
@@ -55,7 +55,7 @@ pub fn update_registry(paras: Vec<Parachain>) -> Result<(), String> {
 }
 
 fn get_registry() -> File {
-	match OpenOptions::new().read(true).write(true).create(true).open(config().registry) {
+	match OpenOptions::new().read(true).write(true).open(config().registry) {
 		Ok(file) => file,
 		Err(_) => init_registry(),
 	}
