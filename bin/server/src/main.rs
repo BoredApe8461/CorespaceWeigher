@@ -31,5 +31,7 @@ extern crate rocket;
 fn rocket() -> _ {
 	rocket::build()
 		.attach(CorsOptions::default().to_cors().unwrap())
+
 		.mount("/", routes![consumption, register_para, registry, extend_subscription])
+
 }
