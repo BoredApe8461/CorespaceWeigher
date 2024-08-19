@@ -76,10 +76,8 @@ pub struct Parachain {
 	pub para_id: ParaId,
 	/// The relay chain that the parachain is using for block validation.
 	pub relay_chain: RelayChain,
-	/// The last time the subscription was paid for the para.
-	///
-	/// This is initially set to the timestamp when the para was registered.
-	pub last_payment_timestamp: Timestamp,
+	/// The timestamp when the subscription expires.
+	pub expiry_timestamp: Timestamp,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -126,5 +124,27 @@ impl fmt::Display for WeightConsumption {
 		write!(f, "\n\tOperational proof size: {}", self.proof_size.operational)?;
 		write!(f, "\n\tMandatory proof size: {}", self.proof_size.mandatory)?;
 		Ok(())
+	}
+}
+
+impl WeightConsumption {
+	/// Returns consumption data as a vector of strings, where each element
+	/// represents a column in a CSV format. Each string in the vector corresponds
+	/// to one column of data.
+	pub fn to_csv(&self) -> Vec<String> {
+		vec![
+			// Block number:
+			self.block_number.to_string(),
+			// Timestamp:
+			self.timestamp.to_string(),
+			// Reftime consumption:
+			self.ref_time.normal.to_string(),
+			self.ref_time.operational.to_string(),
+			self.ref_time.mandatory.to_string(),
+			// Proof size:
+			self.proof_size.normal.to_string(),
+			self.proof_size.operational.to_string(),
+			self.proof_size.mandatory.to_string(),
+		]
 	}
 }

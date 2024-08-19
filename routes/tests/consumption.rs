@@ -253,6 +253,24 @@ fn grouping_works() {
 		);
 		assert_eq!(consumption_data, expected_consumption);
 
+		// Grouping by minute:
+		let response = client.get("/consumption/polkadot/2000?grouping=minute").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_ok_response(response);
+		let expected_consumption =
+			group_consumption(mock_consumption().get(&para).unwrap().clone(), Grouping::Minute);
+		assert_eq!(consumption_data, expected_consumption);
+
+		// Grouping by hour:
+		let response = client.get("/consumption/polkadot/2000?grouping=hour").dispatch();
+		assert_eq!(response.status(), Status::Ok);
+
+		let consumption_data = parse_ok_response(response);
+		let expected_consumption =
+			group_consumption(mock_consumption().get(&para).unwrap().clone(), Grouping::Hour);
+		assert_eq!(consumption_data, expected_consumption);
+
 		// Grouping by day:
 		let response = client.get("/consumption/polkadot/2000?grouping=day").dispatch();
 		assert_eq!(response.status(), Status::Ok);
@@ -282,7 +300,9 @@ fn grouping_works() {
 	});
 }
 
-fn parse_ok_response<'a>(response: LocalResponse<'a>) -> HashMap<String, AggregatedData> {
+
+fn parse_ok_response<'a>(response: LocalResponse<'a>) -> Vec<AggregatedData> {
+
 	let body = response.into_string().unwrap();
 	serde_json::from_str(&body).expect("can't parse value")
 }

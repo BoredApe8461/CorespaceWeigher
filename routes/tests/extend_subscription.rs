@@ -23,13 +23,17 @@ use routes::{
 	extend_subscription::{extend_subscription, ExtendSubscriptionData},
 	Error,
 };
-use shared::{chaindata::get_para, payment::PaymentError, registry::registered_para};
+use shared::{
+	chaindata::get_para,
+	payment::PaymentError,
+	registry::{registered_para, update_registry},
+};
 use types::RelayChain::*;
 
 mod mock;
 use mock::MockEnvironment;
 
-const PARA_2000_PAYMENT: BlockNumber = 8624975;
+const PARA_2000_PAYMENT: BlockNumber = 9145403;
 
 #[test]
 fn extend_subscription_works() {
@@ -52,8 +56,8 @@ fn extend_subscription_works() {
 		assert_eq!(response.status(), Status::Ok);
 
 		let registered = registered_para(Polkadot, 2000).unwrap();
-		// Ensure the `last_payment_timestamp` got updated:
-		assert!(registered.last_payment_timestamp != para.last_payment_timestamp);
+		// Ensure the `expiry_timestamp` got updated:
+		assert!(registered.expiry_timestamp != para.expiry_timestamp);
 	});
 }
 
@@ -75,6 +79,31 @@ fn cannot_extend_subscription_for_unregistered() {
 			.dispatch();
 
 		assert_eq!(parse_err_response(response), Error::NotRegistered);
+	});
+}
+
+#[test]
+fn cannot_extend_subscription_before_renewal_period() {
+	MockEnvironment::new().execute_with(|| {
+		let rocket = rocket::build().mount("/", routes![extend_subscription]);
+		let client = Client::tracked(rocket).expect("valid rocket instance");
+
+		let extend_subscription = ExtendSubscriptionData {
+			para: (Polkadot, 2000),
+			payment_block_number: PARA_2000_PAYMENT,
+		};
+
+		let mut para = get_para(Polkadot, 2000).unwrap();
+		para.expiry_timestamp = u64::MAX;
+		update_registry(vec![para]).unwrap();
+
+		let response = client
+			.post("/extend-subscription")
+			.header(ContentType::JSON)
+			.body(serde_json::to_string(&extend_subscription).unwrap())
+			.dispatch();
+
+		assert_eq!(parse_err_response(response), Error::AlreadyRegistered);
 	});
 }
 

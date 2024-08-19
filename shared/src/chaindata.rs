@@ -71,7 +71,7 @@ pub fn get_para(relay: RelayChain, para_id: ParaId) -> Result<Parachain, ChainDa
 		para_id,
 		name: para_chaindata.name.clone(),
 		rpcs,
-		last_payment_timestamp: Default::default(),
+		expiry_timestamp: Default::default(),
 	};
 
 	Ok(para)

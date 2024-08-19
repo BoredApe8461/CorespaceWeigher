@@ -40,34 +40,50 @@ pub async fn extend_subscription(data: Json<ExtendSubscriptionData>) -> Result<(
 
 	log::info!(
 		target: LOG_TARGET,
-		"Attempting to extend subscription for para: {}:{}",
+		"{}-{} - Attempting to extend subscription for para",
 		relay_chain, para_id
 	);
 
-	let mut para = registered_para(relay_chain.clone(), para_id).ok_or(Error::NotRegistered)?;
+	let para = registered_para(relay_chain.clone(), para_id).ok_or(Error::NotRegistered)?;
 
-	if let Some(payment_info) = config().payment_info {
-		validate_registration_payment(para.clone(), payment_info, data.payment_block_number)
-			.await
-			.map_err(Error::PaymentValidationError)?;
-	}
+	let subscription_duration = if let Some(payment_info) = config().payment_info {
+		if para.expiry_timestamp.saturating_sub(payment_info.renewal_period) > current_timestamp() {
+			// Cannot renew yet.
+			return Err(Error::AlreadyRegistered);
+		}
+
+		validate_registration_payment(
+			para.clone(),
+			payment_info.clone(),
+			data.payment_block_number,
+		)
+		.await
+		.map_err(Error::PaymentValidationError)?;
+
+		payment_info.subscription_duration
+	} else {
+		Default::default()
+	};
 
 	let mut paras = registered_paras();
 
 	if let Some(para) = paras.iter_mut().find(|p| **p == para) {
-		para.last_payment_timestamp = current_timestamp();
+		para.expiry_timestamp += subscription_duration;
 	} else {
 		return Err(Error::NotRegistered);
 	}
 
-	para.last_payment_timestamp = current_timestamp();
-
 	if let Err(err) = update_registry(paras) {
 		log::error!(
 			target: LOG_TARGET,
-			"Failed to extend subscription for para: {:?}",
+			"{}-{} Failed to extend subscription for para: {:?}",
+			para.relay_chain,
+			para.para_id,
 			err
 		);
+	} else {
+		#[cfg(not(debug_assertions))]
+		shared::init_tracker();
 	}
 
 	Ok(())

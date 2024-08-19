@@ -33,7 +33,7 @@ use types::RelayChain::*;
 mod mock;
 use mock::MockEnvironment;
 
-const PARA_2000_PAYMENT: BlockNumber = 8624975;
+const PARA_2000_PAYMENT: BlockNumber = 9145403;
 
 #[test]
 fn register_works() {
@@ -57,8 +57,8 @@ fn register_works() {
 
 		let registered = registered_para(Polkadot, 2000).unwrap();
 
-		// Set the `last_payment_timestamp` to the proper value.
-		para.last_payment_timestamp = registered.last_payment_timestamp;
+		// Set the `expiry_timestamp` to the proper value.
+		para.expiry_timestamp = registered.expiry_timestamp;
 
 		// Ensure the parachain is properly registered:
 		assert_eq!(registered_paras(), vec![para.clone()]);

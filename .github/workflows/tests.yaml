@@ -73,3 +73,18 @@ jobs:
 
       - name: Ensure the project builds
         run: cargo build
+  test:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use cashed cargo
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo
+          key: ${{ runner.os }}-rust-${{ hashFiles('rust-toolchain.toml') }}
+
+      - name: Checkout the source code
+        uses: actions/checkout@v3
+
+      - name: Ensure the project builds
+        run: cargo test -- --test-threads=1
