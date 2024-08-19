@@ -43,6 +43,8 @@
 
 const LOG_TARGET: &str = "tracker";
 
+const LOG_TARGET: &str = "tracker";
+
 use clap::Parser;
 use shared::{consumption::write_consumption, registry::registered_paras, round_to};
 use subxt::{blocks::Block, utils::H256, OnlineClient, PolkadotConfig};

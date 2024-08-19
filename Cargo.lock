@@ -4916,7 +4916,7 @@ dependencies = [
  "indexmap-nostd",
 ]
 
-[[package]]
+[[package
 name = "winapi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
