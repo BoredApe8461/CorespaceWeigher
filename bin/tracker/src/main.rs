@@ -34,29 +34,38 @@
 //! The data stored is the 2D weight consumption per each dispatch class.
 //! The data is stored in the CSV file within the following sequence:
 //!
-//! | block_number | normal_dispatch_ref_time | operational_dispatch_ref_time | mandatory_dispatch_ref_time | normal_proof_size | operational_proof_size | mandatory_proof_size |
-//! |--------------|---------------------------|-------------------------------|-----------------------------|-------------------|-------------------------|-----------------------|
-//! | ...          | ...                       | ...                           | ...                         | ...               | ...                     | ...                   |
+//! | block_number | timestamp             | normal_dispatch_ref_time  | operational_dispatch_ref_time | mandatory_dispatch_ref_time | normal_proof_size | operational_proof_size  | mandatory_proof_size  |
+//! |--------------|-----------------------|---------------------------|-------------------------------|-----------------------------|-------------------|-------------------------|-----------------------|
+//! | ...          | ...                   | ...                       | ...                           | ...                         | ...               | ...                     | ...                   |
 //!
 //! The percentages themselves are stored by representing them as decimal numbers;
 //! for example, 50.5% is stored as 0.505 with a precision of three decimals.
 
-use csv::WriterBuilder;
-use shared::{file_path, parachains, round_to};
-use std::fs::OpenOptions;
-use subxt::{OnlineClient, PolkadotConfig};
-use types::{Parachain, WeightConsumption};
+const LOG_TARGET: &str = "tracker";
+
+use clap::Parser;
+use shared::{consumption::write_consumption, registry::registered_paras, round_to};
+use subxt::{blocks::Block, utils::H256, OnlineClient, PolkadotConfig};
+use types::{Parachain, Timestamp, WeightConsumption};
+
+mod cli;
 
 #[subxt::subxt(runtime_metadata_path = "../../artifacts/metadata.scale")]
 mod polkadot {}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	env_logger::init();
+
+	let args = cli::Args::parse();
+
 	// Asynchronously subscribes to follow the latest finalized block of each parachain
 	// and continuously fetches the weight consumption.
-	let tasks: Vec<_> = parachains()
+	let tasks: Vec<_> = registered_paras()
 		.into_iter()
-		.map(|para| tokio::spawn(async move { track_weight_consumption(para).await }))
+		.map(|para| {
+			tokio::spawn(async move { track_weight_consumption(para, args.rpc_index).await })
+		})
 		.collect();
 
 	for task in tasks {
@@ -66,53 +75,86 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	Ok(())
 }
 
-async fn track_weight_consumption(para: Parachain) {
-	if let Ok(api) = OnlineClient::<PolkadotConfig>::from_url(&para.rpc_url).await {
-		let mut blocks_sub = api
-			.blocks()
-			.subscribe_finalized()
-			.await
-			.expect("Failed to subscribe to finalized blocks");
+async fn track_weight_consumption(para: Parachain, rpc_index: usize) {
+	let Some(rpc) = para.rpcs.get(rpc_index) else {
+		log::error!(
+			target: LOG_TARGET,
+			"{}-{} - doesn't have an rpc with index: {}",
+			para.relay_chain, para.para_id, rpc_index,
+		);
+		return;
+	};
 
-		// Wait for new finalized blocks, then fetch and output the weight consumption accordingly.
-		while let Some(Ok(block)) = blocks_sub.next().await {
-			let block_number = block.header().number;
-			if let Ok(consumption) = weight_consumption(api.clone(), block_number).await {
-				let _ = write_consumption(para.clone(), consumption);
-			}
+	log::info!("{}-{} - Starting to track consumption.", para.relay_chain, para.para_id);
+	let result = OnlineClient::<PolkadotConfig>::from_url(rpc).await;
+
+	if let Ok(api) = result {
+		if let Err(err) = track_blocks(api, para.clone(), rpc_index).await {
+			log::error!(
+				target: LOG_TARGET,
+				"{}-{} - Failed to track new block: {:?}",
+				para.relay_chain,
+				para.para_id,
+				err
+			);
 		}
+	} else {
+		log::error!(
+			target: LOG_TARGET,
+			"{}-{} - Failed to create online client: {:?}",
+			para.relay_chain,
+			para.para_id,
+			result
+		);
 	}
 }
 
-fn write_consumption(
+async fn track_blocks(
+	api: OnlineClient<PolkadotConfig>,
 	para: Parachain,
-	consumption: WeightConsumption,
-) -> Result<(), std::io::Error> {
-	let file_path = file_path(para);
-	let file = OpenOptions::new().write(true).create(true).append(true).open(file_path)?;
+	rpc_index: usize,
+) -> Result<(), Box<dyn std::error::Error>> {
+	log::info!(
+		target: LOG_TARGET,
+		"{}-{} - Subsciribing to finalized blocks",
+		para.relay_chain,
+		para.para_id
+	);
 
-	let mut wtr = WriterBuilder::new().from_writer(file);
+	let mut blocks_sub = api
+		.blocks()
+		.subscribe_finalized()
+		.await
+		.map_err(|_| "Failed to subscribe to finalized blocks")?;
 
-	// The data is stored in the sequence described at the beginning of the file.
-	wtr.write_record(&[
-		// Block number:
-		consumption.block_number.to_string(),
-		// Reftime consumption:
-		consumption.ref_time.normal.to_string(),
-		consumption.ref_time.operational.to_string(),
-		consumption.ref_time.mandatory.to_string(),
-		// Proof size:
-		consumption.proof_size.normal.to_string(),
-		consumption.proof_size.operational.to_string(),
-		consumption.proof_size.mandatory.to_string(),
-	])?;
+	// Wait for new finalized blocks, then fetch and output the weight consumption accordingly.
+	while let Some(Ok(block)) = blocks_sub.next().await {
+		note_new_block(api.clone(), para.clone(), rpc_index, block).await?;
+	}
 
-	wtr.flush()
+	Ok(())
+}
+
+async fn note_new_block(
+	api: OnlineClient<PolkadotConfig>,
+	para: Parachain,
+	rpc_index: usize,
+	block: Block<PolkadotConfig, OnlineClient<PolkadotConfig>>,
+) -> Result<(), Box<dyn std::error::Error>> {
+	let block_number = block.header().number;
+
+	let timestamp = timestamp_at(api.clone(), block.hash()).await?;
+	let consumption = weight_consumption(api, block_number, timestamp).await?;
+
+	write_consumption(para, consumption, Some(rpc_index))?;
+
+	Ok(())
 }
 
 async fn weight_consumption(
 	api: OnlineClient<PolkadotConfig>,
 	block_number: u32,
+	timestamp: Timestamp,
 ) -> Result<WeightConsumption, Box<dyn std::error::Error>> {
 	let weight_query = polkadot::storage().system().block_weight();
 	let weight_consumed = api
@@ -141,6 +183,7 @@ async fn weight_consumption(
 
 	let consumption = WeightConsumption {
 		block_number,
+		timestamp,
 		ref_time: (
 			round_to(normal_ref_time as f32 / ref_time_limit as f32, 3),
 			round_to(operational_ref_time as f32 / ref_time_limit as f32, 3),
@@ -156,4 +199,20 @@ async fn weight_consumption(
 	};
 
 	Ok(consumption)
+}
+
+async fn timestamp_at(
+	api: OnlineClient<PolkadotConfig>,
+	block_hash: H256,
+) -> Result<Timestamp, Box<dyn std::error::Error>> {
+	let timestamp_query = polkadot::storage().timestamp().now();
+
+	let timestamp = api
+		.storage()
+		.at(block_hash)
+		.fetch(&timestamp_query)
+		.await?
+		.ok_or("Failed to query consumption")?;
+
+	Ok(timestamp)
 }

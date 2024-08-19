@@ -6,10 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-csv = "1.3.0"
+log = "0.4"
+chrono = "0.4.33"
 rocket = { version = "0.5.0", features=["json"] }
 rocket_cors = "0.6.0"
+serde = "1.0.193"
 serde_json = "1.0.108"
+polkadot-core-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 
 types = { path = "../types" }
-shared = { path = "../shared" }
+shared = { path = "../shared", features = ["test-utils"]}
+
+[dev-dependencies]
+maplit = "1.0.2"
+scopeguard = "1.2.0"
