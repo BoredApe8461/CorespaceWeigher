@@ -11,3 +11,4 @@ cost = "1000000000" #0.001 ROC
 subscription_duration =  7890000
 # 604800 is 1 week in seconds.
 renewal_period=604800
+
