@@ -79,27 +79,31 @@ async fn track_weight_consumption(para: Parachain, rpc_index: usize) {
 	let Some(rpc) = para.rpcs.get(rpc_index) else {
 		log::error!(
 			target: LOG_TARGET,
-			"Parachain {}-{} doesn't have an rpc with index: {}",
+			"{}-{} - doesn't have an rpc with index: {}",
 			para.relay_chain, para.para_id, rpc_index,
 		);
 		return;
 	};
 
-	log::info!("Starting to track consumption for: {}-{}", para.relay_chain, para.para_id);
+	log::info!("{}-{} - Starting to track consumption.", para.relay_chain, para.para_id);
 	let result = OnlineClient::<PolkadotConfig>::from_url(rpc).await;
 
 	if let Ok(api) = result {
-		if let Err(err) = track_blocks(api, para, rpc_index).await {
+		if let Err(err) = track_blocks(api, para.clone(), rpc_index).await {
 			log::error!(
 				target: LOG_TARGET,
-				"Failed to track new block: {:?}",
+				"{}-{} - Failed to track new block: {:?}",
+				para.relay_chain,
+				para.para_id,
 				err
 			);
 		}
 	} else {
 		log::error!(
 			target: LOG_TARGET,
-			"Failed to create online client: {:?}",
+			"{}-{} - Failed to create online client: {:?}",
+			para.relay_chain,
+			para.para_id,
 			result
 		);
 	}
@@ -110,7 +114,13 @@ async fn track_blocks(
 	para: Parachain,
 	rpc_index: usize,
 ) -> Result<(), Box<dyn std::error::Error>> {
-	log::info!("Subsciribing to finalized blocks for: {}", para.para_id);
+	log::info!(
+		target: LOG_TARGET,
+		"{}-{} - Subsciribing to finalized blocks",
+		para.relay_chain,
+		para.para_id
+	);
+
 	let mut blocks_sub = api
 		.blocks()
 		.subscribe_finalized()
@@ -136,7 +146,7 @@ async fn note_new_block(
 	let timestamp = timestamp_at(api.clone(), block.hash()).await?;
 	let consumption = weight_consumption(api, block_number, timestamp).await?;
 
-	write_consumption(para, consumption, rpc_index)?;
+	write_consumption(para, consumption, Some(rpc_index))?;
 
 	Ok(())
 }

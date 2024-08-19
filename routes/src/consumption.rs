@@ -21,7 +21,7 @@ use rocket::{
 	get,
 };
 use shared::{consumption::get_consumption, registry::registered_para};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use types::{DispatchClassConsumption, ParaId, Timestamp, WeightConsumption};
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -52,6 +52,7 @@ impl<'r> FromFormField<'r> for Grouping {
 #[derive(Default, Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct AggregatedData {
+	pub group: String,
 	/// The aggregated ref_time consumption over all the dispatch classes.
 	pub ref_time: DispatchClassConsumption,
 	/// The aggregated proof size over all dispatch classes.
@@ -78,7 +79,7 @@ pub fn consumption(
 	let (start, end) = (start.unwrap_or_default(), end.unwrap_or(Timestamp::MAX));
 
 	// By default query the consumption that was collected from rpc index 0.
-	let weight_consumptions: Vec<WeightConsumption> = get_consumption(para, 0)
+	let weight_consumptions: Vec<WeightConsumption> = get_consumption(para, None)
 		.map_err(|_| Error::ConsumptionDataNotFound)?
 		.into_iter()
 		.filter(|consumption| consumption.timestamp >= start && consumption.timestamp <= end)
@@ -88,7 +89,7 @@ pub fn consumption(
 
 	let grouping = grouping.unwrap_or(Grouping::BlockNumber);
 
-	let grouped: HashMap<String, AggregatedData> = group_consumption(weight_consumptions, grouping);
+	let grouped = group_consumption(weight_consumptions, grouping);
 
 	serde_json::to_string(&grouped).map_err(|_| Error::InvalidData)
 }
@@ -96,10 +97,10 @@ pub fn consumption(
 pub fn group_consumption(
 	weight_consumptions: Vec<WeightConsumption>,
 	grouping: Grouping,
-) -> HashMap<String, AggregatedData> {
-	weight_consumptions.iter().fold(HashMap::new(), |mut acc, datum| {
+) -> Vec<AggregatedData> {
+	let grouped = weight_consumptions.iter().fold(BTreeMap::new(), |mut acc, datum| {
 		let key = get_aggregation_key(datum.clone(), grouping);
-		let entry = acc.entry(key).or_default();
+		let entry: &mut AggregatedData = acc.entry(key).or_default();
 
 		entry.ref_time.normal += datum.ref_time.normal;
 		entry.ref_time.operational += datum.ref_time.operational;
@@ -112,7 +113,16 @@ pub fn group_consumption(
 		entry.count += 1;
 
 		acc
-	})
+	});
+
+	grouped
+		.into_iter()
+		.map(|(key, entry)| {
+			let mut entry = entry;
+			entry.group = key;
+			entry
+		})
+		.collect()
 }
 
 fn get_aggregation_key(datum: WeightConsumption, grouping: Grouping) -> String {

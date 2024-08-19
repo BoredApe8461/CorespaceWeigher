@@ -23,7 +23,6 @@ use routes::{
 	Error,
 };
 use shared::{chaindata::get_para, registry::update_registry, reset_mock_environment};
-use std::collections::HashMap;
 use types::{RelayChain::*, WeightConsumption};
 
 mod mock;
@@ -300,7 +299,7 @@ fn grouping_works() {
 	});
 }
 
-fn parse_ok_response<'a>(response: LocalResponse<'a>) -> HashMap<String, AggregatedData> {
+fn parse_ok_response<'a>(response: LocalResponse<'a>) -> Vec<AggregatedData> {
 	let body = response.into_string().unwrap();
 	serde_json::from_str(&body).expect("can't parse value")
 }
