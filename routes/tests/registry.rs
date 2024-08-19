@@ -19,6 +19,7 @@ use rocket::{
 	routes,
 };
 use routes::registry::registry;
+
 use shared::chaindata::get_para;
 use types::{Parachain, RelayChain::*};
 
@@ -33,6 +34,7 @@ fn getting_registry_works() {
 
 		let response = client.get("/registry").dispatch();
 		assert_eq!(response.status(), Status::Ok);
+
 
 		let mut registry = parse_ok_response(response);
 		registry.sort_by_key(|p| p.para_id);
