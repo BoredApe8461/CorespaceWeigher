@@ -65,19 +65,6 @@ impl From<String> for Error {
 			"NotRegistered" => Self::NotRegistered,
 			"ConsumptionDataNotFound" => Self::ConsumptionDataNotFound,
 			"InvalidData" => Self::InvalidData,
-			"PaymentRequired" => Self::PaymentRequired,
-			_ if v.starts_with("ChainDataError(") => {
-				let chaindata_error =
-					v.trim_start_matches("ChainDataError(").trim_end_matches(')').trim();
-
-				Error::ChainDataError(ChainDataError::from(chaindata_error.to_string()))
-			},
-			_ if v.starts_with("PaymentValidationError(") => {
-				let payment_error =
-					v.trim_start_matches("PaymentValidationError(").trim_end_matches(')').trim();
-
-				Error::PaymentValidationError(PaymentError::from(payment_error.to_string()))
-			},
 			_ => panic!("UnknownError"),
 		}
 	}

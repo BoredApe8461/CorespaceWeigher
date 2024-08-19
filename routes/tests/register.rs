@@ -19,21 +19,12 @@ use rocket::{
 	local::blocking::{Client, LocalResponse},
 	routes,
 };
-use routes::{
-	register::{register_para, RegistrationData},
-	Error,
-};
-use shared::{
-	chaindata::get_para,
-	payment::PaymentError,
-	registry::{registered_para, registered_paras},
-};
+use routes::{register::register_para, Error};
+use shared::registry::{registered_para, registered_paras};
 use types::RelayChain::*;
 
 mod mock;
-use mock::MockEnvironment;
-
-const PARA_2000_PAYMENT: BlockNumber = 9145403;
+use mock::{mock_para, MockEnvironment};
 
 #[test]
 fn register_works() {
@@ -41,11 +32,7 @@ fn register_works() {
 		let rocket = rocket::build().mount("/", routes![register_para]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let mut para = get_para(Polkadot, 2000).unwrap();
-		let registration_data = RegistrationData {
-			para: (Polkadot, 2000),
-			payment_block_number: Some(PARA_2000_PAYMENT),
-		};
+		let para = mock_para(Polkadot, 2001);
 
 		let response = client
 			.post("/register_para")
@@ -73,10 +60,7 @@ fn cannot_register_same_para_twice() {
 		let rocket = rocket::build().mount("/", routes![register_para]);
 		let client = Client::tracked(rocket).expect("valid rocket instance");
 
-		let registration_data = RegistrationData {
-			para: (Polkadot, 2000),
-			payment_block_number: Some(PARA_2000_PAYMENT),
-		};
+		let para = mock_para(Polkadot, 2001);
 
 		let register = client
 			.post("/register_para")
@@ -86,72 +70,6 @@ fn cannot_register_same_para_twice() {
 		// Cannot register the same para twice:
 		assert_eq!(register.clone().dispatch().status(), Status::Ok);
 		assert_eq!(parse_err_response(register.dispatch()), Error::AlreadyRegistered);
-	});
-}
-
-#[test]
-fn providing_no_payment_info_fails() {
-	MockEnvironment::default().execute_with(|| {
-		let rocket = rocket::build().mount("/", routes![register_para]);
-		let client = Client::tracked(rocket).expect("valid rocket instance");
-
-		let registration_data =
-			RegistrationData { para: (Polkadot, 2006), payment_block_number: None };
-
-		let response = client
-			.post("/register_para")
-			.header(ContentType::JSON)
-			.body(serde_json::to_string(&registration_data).unwrap())
-			.dispatch();
-
-		assert_eq!(parse_err_response(response), Error::PaymentRequired);
-	});
-}
-
-#[test]
-fn providing_non_finalized_payment_block_number_fails() {
-	MockEnvironment::default().execute_with(|| {
-		let rocket = rocket::build().mount("/", routes![register_para]);
-		let client = Client::tracked(rocket).expect("valid rocket instance");
-
-		let registration_data =
-			RegistrationData { para: (Polkadot, 2006), payment_block_number: Some(99999999) };
-
-		let response = client
-			.post("/register_para")
-			.header(ContentType::JSON)
-			.body(serde_json::to_string(&registration_data).unwrap())
-			.dispatch();
-
-		assert_eq!(
-			parse_err_response(response),
-			Error::PaymentValidationError(PaymentError::Unfinalized)
-		);
-	});
-}
-
-#[test]
-fn payment_not_found_works() {
-	MockEnvironment::default().execute_with(|| {
-		let rocket = rocket::build().mount("/", routes![register_para]);
-		let client = Client::tracked(rocket).expect("valid rocket instance");
-
-		// We are registering para 2006, but the payment is for para 2000.
-		let registration_data = RegistrationData {
-			para: (Polkadot, 2006),
-			payment_block_number: Some(PARA_2000_PAYMENT),
-		};
-
-		let response = client
-			.post("/register_para")
-			.header(ContentType::JSON)
-			.body(serde_json::to_string(&registration_data).unwrap())
-			.dispatch();
-
-		assert_eq!(
-			parse_err_response(response),
-			Error::PaymentValidationError(PaymentError::NotFound)
-		);
 	});
 }
 
