@@ -17,11 +17,11 @@
 use maplit::hashmap;
 use scopeguard::guard;
 use shared::{
-	consumption::write_consumption, current_timestamp, registry::update_registry,
+	chaindata::get_para, consumption::write_consumption, registry::update_registry,
 	reset_mock_environment,
 };
 use std::collections::HashMap;
-use types::{ParaId, Parachain, RelayChain, RelayChain::*, WeightConsumption};
+use types::{Parachain, RelayChain::*, WeightConsumption};
 
 #[derive(Default)]
 pub struct MockEnvironment {
@@ -38,7 +38,7 @@ impl MockEnvironment {
 
 		for (para, weight_consumptions) in &mock.weight_consumptions {
 			weight_consumptions.iter().for_each(|consumption| {
-				write_consumption(para.clone(), consumption.clone())
+				write_consumption(para.clone(), consumption.clone(), None)
 					.expect("Failed to write conusumption data");
 			});
 		}
@@ -60,7 +60,7 @@ impl MockEnvironment {
 
 pub fn mock_consumption() -> HashMap<Parachain, Vec<WeightConsumption>> {
 	hashmap! {
-		mock_para(Polkadot, 2000) => vec![
+		get_para(Polkadot, 2000).unwrap() => vec![
 			WeightConsumption {
 				block_number: 1,
 				timestamp: 0,
@@ -86,7 +86,7 @@ pub fn mock_consumption() -> HashMap<Parachain, Vec<WeightConsumption>> {
 				proof_size: (0.2, 0.1, 0.3).into(),
 			},
 		],
-		mock_para(Polkadot, 2005) => vec![
+		get_para(Polkadot, 2004).unwrap() => vec![
 			WeightConsumption {
 				block_number: 1,
 				timestamp: 0,
@@ -97,12 +97,3 @@ pub fn mock_consumption() -> HashMap<Parachain, Vec<WeightConsumption>> {
 	}
 }
 
-pub fn mock_para(relay: RelayChain, para_id: ParaId) -> Parachain {
-	Parachain {
-		name: format!("{}-{}", relay, para_id),
-		rpc_url: format!("wss://{}-{}.com", relay, para_id),
-		para_id,
-		relay_chain: relay,
-		last_payment_timestamp: 0,
-	}
-}

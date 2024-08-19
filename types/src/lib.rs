@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with RegionX.  If not, see <https://www.gnu.org/licenses/>.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
 
 /// Timestamp based on the 1 Jan 1970 UNIX base, which is persistent across node restarts and OS
@@ -25,7 +25,7 @@ pub type ParaId = u32;
 
 pub type Balance = u128;
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Hash)]
 #[serde(crate = "rocket::serde")]
 pub enum RelayChain {
 	Polkadot,
@@ -51,23 +51,34 @@ impl From<&str> for RelayChain {
 	}
 }
 
+impl<'de> Deserialize<'de> for RelayChain {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		let s = String::deserialize(deserializer)?.to_lowercase();
+		match s.as_str() {
+			"polkadot" | "Polkadot" => Ok(RelayChain::Polkadot),
+			"kusama" | "Kusama" => Ok(RelayChain::Kusama),
+			_ => Err(serde::de::Error::custom(format!("Invalid relay chain: {}", s))),
+		}
+	}
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(crate = "rocket::serde")]
 pub struct Parachain {
 	/// Name of the parachain.
 	pub name: String,
 	/// The rpc url endpoint from where we can query the weight consumption.
-	//
-	// TODO: instead of having only one rpc url specified there should be a fallback.
-	pub rpc_url: String,
+	pub rpcs: Vec<String>,
 	/// The `ParaId` of the parachain.
 	pub para_id: ParaId,
 	/// The relay chain that the parachain is using for block validation.
 	pub relay_chain: RelayChain,
-	/// The last time the subscription was paid for the para.
-	///
-	/// This is initially set to the timestamp when the para was registered.
-	pub last_payment_timestamp: Timestamp,
+
+	/// The timestamp when the subscription expires.
+	pub expiry_timestamp: Timestamp,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -82,7 +93,7 @@ pub struct WeightConsumption {
 	pub proof_size: DispatchClassConsumption,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Default, Debug, Serialize, PartialEq, Deserialize, Clone)]
 pub struct DispatchClassConsumption {
 	/// The percentage of the weight used by user submitted extrinsics compared to the
 	/// maximum potential.
@@ -114,5 +125,27 @@ impl fmt::Display for WeightConsumption {
 		write!(f, "\n\tOperational proof size: {}", self.proof_size.operational)?;
 		write!(f, "\n\tMandatory proof size: {}", self.proof_size.mandatory)?;
 		Ok(())
+	}
+}
+
+impl WeightConsumption {
+	/// Returns consumption data as a vector of strings, where each element
+	/// represents a column in a CSV format. Each string in the vector corresponds
+	/// to one column of data.
+	pub fn to_csv(&self) -> Vec<String> {
+		vec![
+			// Block number:
+			self.block_number.to_string(),
+			// Timestamp:
+			self.timestamp.to_string(),
+			// Reftime consumption:
+			self.ref_time.normal.to_string(),
+			self.ref_time.operational.to_string(),
+			self.ref_time.mandatory.to_string(),
+			// Proof size:
+			self.proof_size.normal.to_string(),
+			self.proof_size.operational.to_string(),
+			self.proof_size.mandatory.to_string(),
+		]
 	}
 }

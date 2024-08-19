@@ -17,69 +17,66 @@ use crate::*;
 use polkadot_core_primitives::BlockNumber;
 use rocket::{post, serde::json::Json};
 use shared::{
-
-	chaindata,
 	config::config,
 	current_timestamp,
 	payment::validate_registration_payment,
-
 	registry::{registered_para, registered_paras, update_registry},
 };
 use types::{ParaId, RelayChain};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct RegistrationData {
-	/// The parachain getting registered.
+pub struct ExtendSubscriptionData {
+	/// The parachain which is getting its subscription extended.
 	pub para: (RelayChain, ParaId),
 	/// The block in which the payment occurred for the specific parachain.
-	///
-	/// In free mode (where payment is not required), this is ignored and can be `None`.
-	/// Otherwise, it should contain a valid block number.
-	pub payment_block_number: Option<BlockNumber>,
+	pub payment_block_number: BlockNumber,
 }
 
-/// Register a parachain for resource utilization tracking.
-#[post("/register_para", data = "<registration_data>")]
-pub async fn register_para(registration_data: Json<RegistrationData>) -> Result<(), Error> {
-
-
+/// Extend the subscription of a parachain for resource utilization tracking.
+#[post("/extend-subscription", data = "<data>")]
+pub async fn extend_subscription(data: Json<ExtendSubscriptionData>) -> Result<(), Error> {
+	let (relay_chain, para_id) = data.para.clone();
 
 	log::info!(
 		target: LOG_TARGET,
-		"{}-{} - Attempting to register para",
+		"{}-{} - Attempting to extend subscription for para",
 		relay_chain, para_id
 	);
 
-	let mut paras = registered_paras();
-
-	if registered_para(relay_chain.clone(), para_id).is_some() {
-		return Err(Error::AlreadyRegistered);
-	}
-
-	let mut para = chaindata::get_para(relay_chain, para_id).map_err(Error::ChainDataError)?;
+	let para = registered_para(relay_chain.clone(), para_id).ok_or(Error::NotRegistered)?;
 
 	let subscription_duration = if let Some(payment_info) = config().payment_info {
-		let payment_block_number =
-			registration_data.payment_block_number.ok_or(Error::PaymentRequired)?;
+		if para.expiry_timestamp.saturating_sub(payment_info.renewal_period) > current_timestamp() {
+			// Cannot renew yet.
+			return Err(Error::AlreadyRegistered);
+		}
 
-		validate_registration_payment(para.clone(), payment_info.clone(), payment_block_number)
-			.await
-			.map_err(Error::PaymentValidationError)?;
+		validate_registration_payment(
+			para.clone(),
+			payment_info.clone(),
+			data.payment_block_number,
+		)
+		.await
+		.map_err(Error::PaymentValidationError)?;
 
 		payment_info.subscription_duration
 	} else {
 		Default::default()
 	};
 
-	para.expiry_timestamp = current_timestamp() + subscription_duration;
+	let mut paras = registered_paras();
 
-	paras.push(para.clone());
+	if let Some(para) = paras.iter_mut().find(|p| **p == para) {
+		para.expiry_timestamp += subscription_duration;
+	} else {
+		return Err(Error::NotRegistered);
+	}
 
 	if let Err(err) = update_registry(paras) {
 		log::error!(
 			target: LOG_TARGET,
-			"{}-{} - Failed to register para: {:?}",
+			"{}-{} Failed to extend subscription for para: {:?}",
 			para.relay_chain,
 			para.para_id,
 			err
